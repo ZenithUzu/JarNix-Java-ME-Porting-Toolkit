@@ -162,8 +162,8 @@ class App(BaseTk):
         f.pack(fill="both", expand=True)
         f.columnconfigure(0, weight=1)
 
-        ttk.Label(f, text="j2a Studio  /  Tu biblioteca, en Android", style="H.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(f, text="01 Añade juegos    →    02 Elige la entrega    →    03 Crea el proyecto o la APK",
+        ttk.Label(f, text="JarNix  /  Java ME Porting Toolkit", style="H.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(f, text="01 Importa JAR    →    02 Configura la entrega    →    03 Genera tu APK",
                   style="Muted.TLabel").grid(row=1, column=0, sticky="w", pady=(0, 6))
         self.list_frame = tk.Frame(f, bg=LCD, highlightthickness=2, highlightbackground=LCD_INK)
         self.list_frame.grid(row=2, column=0, sticky="nsew")
@@ -188,6 +188,7 @@ class App(BaseTk):
         ttk.Button(row, text="Añadir juegos…", command=self.add_games).pack(side="left")
         ttk.Button(row, text="Quitar", command=self.remove_games).pack(side="left", padx=(6, 0))
         ttk.Button(row, text="Abrir carpeta", command=self.open_out).pack(side="right")
+        ttk.Button(row, text="Proyectos e historial", command=self.show_projects_history).pack(side="right", padx=8)
 
         # Shared output base with separate proyectos/ and apk/ folders
         save = ttk.Frame(f)
@@ -232,7 +233,7 @@ class App(BaseTk):
         bottom = ttk.Frame(f)
         bottom.grid(row=7, column=0, sticky="ew", pady=(16, 0))
         bottom.columnconfigure(1, weight=1)
-        self.go = ttk.Button(bottom, text="Crear ports", style="Primary.TButton", command=self.port)
+        self.go = ttk.Button(bottom, text="Crear con JarNix", style="Primary.TButton", command=self.port)
         self.go.grid(row=0, column=0, sticky="w")
         self.progress = ttk.Progressbar(bottom, mode="indeterminate", length=100)
         self.progress.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0))
@@ -255,6 +256,16 @@ class App(BaseTk):
             self.add_paths(initial)
         self.protocol("WM_DELETE_WINDOW", self.close_window)
         self.after(100, self.poll)
+
+    def show_projects_history(self):
+        """Inspect current project paths, package IDs and conversion status without modifying files."""
+        lines = []
+        for game in self.games.values():
+            lines.append("{}\n  ID: {}\n  Proyecto: {}\n  Estado: {}".format(
+                game.name or game.auto_name, game.package or game.auto_package,
+                game.out(self.vars["out"].get()), game.status))
+        messagebox.showinfo("JarNix · Proyectos e historial",
+                            "\n\n".join(lines) if lines else "No hay juegos cargados. Añade un JAR para consultar su proyecto e identificador.")
 
     def close_window(self):
         if self.busy:
