@@ -50,7 +50,7 @@ public final class SaveSaf {
             Uri previous=find(a,destination,file.getName());
             if(previous!=null) {
                 Uri old=DocumentsContract.renameDocument(a.getContentResolver(),previous,
-                    file.getName()+".previous");
+                    file.getName()+".previous-"+System.currentTimeMillis());
                 if(old==null)throw new IOException("No se pudo conservar la copia anterior");
             }
             Uri published=DocumentsContract.renameDocument(a.getContentResolver(),staging,file.getName());
