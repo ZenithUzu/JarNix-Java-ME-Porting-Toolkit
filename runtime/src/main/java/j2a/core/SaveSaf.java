@@ -34,7 +34,6 @@ public final class SaveSaf {
     }
     private static void backupOne(Activity a,File file)throws Exception {
         Uri destination=gameDir(a);
-        Uri target=child(a,destination,file.getName(),false);
         // Copy to a new staging document before replacing the visible backup.
         Uri staging=DocumentsContract.createDocument(a.getContentResolver(),destination,
             "application/octet-stream",file.getName()+".pending");
@@ -46,12 +45,16 @@ public final class SaveSaf {
                 if(out==null)throw new IOException("No se pudo escribir el respaldo");
                 copy(in,out);
             }
-            // SAF providers may not support atomic replacement; retain old backup until copy succeeds.
-            try(InputStream in=a.getContentResolver().openInputStream(staging);
-                OutputStream out=a.getContentResolver().openOutputStream(target,"wt")){
-                if(in==null||out==null)throw new IOException("No se pudo publicar respaldo");
-                copy(in,out);
+            // Keep the previous backup intact. Publish the new file by renaming the
+            // fully written staging document; providers that cannot rename fail safely.
+            Uri previous=find(a,destination,file.getName());
+            if(previous!=null) {
+                Uri old=DocumentsContract.renameDocument(a.getContentResolver(),previous,
+                    file.getName()+".previous");
+                if(old==null)throw new IOException("No se pudo conservar la copia anterior");
             }
+            Uri published=DocumentsContract.renameDocument(a.getContentResolver(),staging,file.getName());
+            if(published==null)throw new IOException("No se pudo publicar el respaldo");
             completed=true;
         }finally{
             try{DocumentsContract.deleteDocument(a.getContentResolver(),staging);}catch(Exception ignored){}
@@ -86,6 +89,15 @@ public final class SaveSaf {
             if(p.getUri().equals(uri)&&p.isReadPermission()&&p.isWritePermission())permitted=true;
         if(!permitted)throw new IOException("Permiso de carpeta caducado; vuelve a seleccionarla");
         return uri;
+    }
+    private static Uri find(Activity a,Uri parent,String name)throws Exception {
+        Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(parent,DocumentsContract.getDocumentId(parent));
+        try(android.database.Cursor cursor=a.getContentResolver().query(children,
+                new String[]{DocumentsContract.Document.COLUMN_DOCUMENT_ID,DocumentsContract.Document.COLUMN_DISPLAY_NAME},null,null,null)){
+            if(cursor!=null)while(cursor.moveToNext())if(name.equals(cursor.getString(1)))
+                return DocumentsContract.buildDocumentUriUsingTree(parent,cursor.getString(0));
+        }
+        return null;
     }
     private static Uri child(Activity a,Uri parent,String name,boolean directory)throws Exception {
         Uri children=DocumentsContract.buildChildDocumentsUriUsingTree(parent,DocumentsContract.getDocumentId(parent));
