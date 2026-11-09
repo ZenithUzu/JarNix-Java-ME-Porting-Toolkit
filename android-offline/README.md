@@ -24,7 +24,7 @@ conservan nombre, editor y clase MIDlet. Los ajustes se cambian dentro del juego
   Límite de entrada: 64 MiB; recursos descomprimidos: 200 MiB, con 32 MiB por entrada.
 - PNG/GIF, manifiesto/JAD, nombre y llamadas de dibujo/buffers aportan pistas de resolución.
   La confianza se muestra en el registro. Si falta evidencia se usa 240x320 y el menú permite corregirla.
-- La clave se genera en **AndroidKeyStore** y queda ligada a esta instalación. **Todavía no hay exportación ni restauración de firmas**: no desinstales ni borres datos de j2a si necesitas actualizar juegos existentes. Borrar datos o
+- Los juegos nuevos se firman con una identidad PKCS#12 reutilizable, almacenada en `files/signing/identity.p12`. Desde la app puedes exportar un respaldo `.p12` protegido con contraseña (mínimo 12 caracteres) y restaurarlo en una instalación limpia **antes de generar el primer juego**. La restauración no reemplaza una firma ya existente, para evitar invalidar actualizaciones. Conserva tanto el respaldo como la contraseña fuera del teléfono. Borrar datos o
   desinstalar la herramienta elimina la posibilidad de actualizar APKs firmadas con esa clave.
   No es la clave de depuración de tu PC: una APK de escritorio con el mismo paquete/firma distinta
   no se puede actualizar directamente. La aplicación no desinstala juegos ni borra sus datos.
@@ -54,4 +54,4 @@ Las fuentes de herramientas están documentadas en los proyectos oficiales:
 
 Los archivos intermedios de cada conversión se crean en la caché y se eliminan al terminar (también si falla). Solo se mantiene una APK terminada pendiente de exportación, que se elimina tras guardarla correctamente. El JAR/JAD seleccionado se conserva como entrada hasta elegir otro archivo; no se borra automáticamente. La interfaz admite desplazamiento vertical y utiliza colores dinámicos del sistema en Android 12+ cuando están disponibles.
 
-**Pendiente:** un almacén exportable y restaurable de claves privadas con cifrado y contraseña. La clave actual de AndroidKeyStore no puede copiarse a una carpeta como respaldo recuperable. No se garantiza continuidad de firma tras desinstalar la herramienta.
+**Firma y actualizaciones:** la firma anterior basada en AndroidKeyStore no es compatible automáticamente con la nueva identidad PKCS#12. Las APK ya instaladas con la firma antigua no se podrán actualizar con una identidad nueva sin una migración específica. Para nuevas APK, respalda la identidad antes de borrar datos o desinstalar j2a. La compatibilidad de actualización requiere además el mismo `applicationId` y un `versionCode` superior. El instalador de la propia herramienta tiene una firma independiente de la de los juegos.
