@@ -11,6 +11,10 @@ MiJuego.jar ──► j2a analyze ──► j2a port ──► proyecto Android 
                  (qué APIs usa)   (parche + descompilación + verificación)
 ```
 
+## Estado de las interfaces
+
+JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una consulta de los JAR cargados en la sesión (nombre, ID, destino y estado). Todavía no es un historial persistente de compilaciones ni una biblioteca de proyectos guardados. J2Droid incorpora accesos iniciales a Proyectos (archivo seleccionado) e Historial (registro de la última conversión), además de **Exportar firma** e **Importar firma**. El rediseño completo basado en el mockup y la persistencia de proyectos/historial están pendientes; no deben confundirse con funciones ya terminadas.
+
 ## Nombres y compatibilidad
 
 - **JarNix**: aplicación de escritorio para preparar proyectos Android Studio, compilar APK e instalar mediante ADB.
