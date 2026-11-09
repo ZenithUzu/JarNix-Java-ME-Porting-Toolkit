@@ -22,6 +22,7 @@ public final class MainActivity extends Activity {
     private TextView selected,status,log;
     private ProgressBar progress;
     private boolean copying;
+    private String backupPassword="";
     private String previousLog="";
     private final Runnable poll=new Runnable(){public void run(){refresh();ui.postDelayed(this,700);}};
     private int accent(){return Build.VERSION.SDK_INT>=31?getColor(android.R.color.system_accent1_500):0xff536dfe;}
@@ -45,6 +46,8 @@ public final class MainActivity extends Activity {
         clearJad=new Button(this);clearJad.setText("Quitar JAD");clearJad.setOnClickListener(v->{getPreferences(0).edit().remove("jad").apply();refresh();});jadRow.addView(clearJad);
         convert=button(root,"02  ·  CREAR APK EN ESTE TELÉFONO",v->startBuild());
         save=button(root,"03  ·  GUARDAR APK",v->saveApk());
+        button(root,"Respaldar firma (.p12)",v->askBackup(false));
+        button(root,"Restaurar firma (.p12)",v->askBackup(true));
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(6)));
         status=text("Motor y compilador incluidos · Android 8 o superior",12,ink(),false);root.addView(status);
         ScrollView scroll=new ScrollView(this);log=text("",12,ink(),false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);log.setPadding(0,dp(12),0,dp(12));scroll.addView(log);root.addView(scroll,new LinearLayout.LayoutParams(-1,dp(160)));
@@ -71,13 +74,34 @@ public final class MainActivity extends Activity {
         try { startForegroundService(intent); }
         catch(RuntimeException error){state.edit().putBoolean("busy",false).putString("log","No se pudo iniciar la conversión: "+error).apply();refresh();}
     }
+    private void askBackup(boolean restore){
+        if(BuildService.isRunning()){Toast.makeText(this,"Espera a que termine la conversión",Toast.LENGTH_LONG).show();return;}
+        EditText field=new EditText(this);field.setSingleLine(true);field.setHint("Contraseña de respaldo (mínimo 12 caracteres)");
+        field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        new android.app.AlertDialog.Builder(this).setTitle(restore?"Restaurar firma":"Respaldar firma")
+            .setMessage(restore?"Solo se permite restaurar antes de crear la primera firma. Necesitas la contraseña original.":"Guarda el archivo y la contraseña en un lugar seguro. Sin ambos, no podrás recuperar la firma.")
+            .setView(field).setNegativeButton("Cancelar",null).setPositiveButton("Continuar",(d,w)->{
+                String password=field.getText().toString();
+                if(password.length()<12){Toast.makeText(this,"Usa al menos 12 caracteres",Toast.LENGTH_LONG).show();return;}
+                backupPassword=password;
+                Intent intent=new Intent(restore?Intent.ACTION_OPEN_DOCUMENT:Intent.ACTION_CREATE_DOCUMENT)
+                    .setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE);
+                if(!restore)intent.putExtra(Intent.EXTRA_TITLE,"j2a-firma.p12");
+                startActivityForResult(intent,restore?5:4);
+            }).show();
+    }
     private void saveApk(){String result=getSharedPreferences(BuildService.STATE,0).getString("result","");if(result.isEmpty())return;Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/vnd.android.package-archive").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,new File(result).getName());startActivityForResult(intent,3);}
     @Override protected void onActivityResult(int request,int code,Intent intent) {
         super.onActivityResult(request,code,intent);if(code!=RESULT_OK || intent==null || intent.getData()==null)return;
         Uri uri=intent.getData();copying=true;refresh();
         files.execute(()->{
             try {
-                if(request==3) {
+                if(request==4 || request==5){
+                    SigningProfile profile=new SigningProfile(this);
+                    if(request==4){try(OutputStream out=getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException("No se pudo guardar");profile.exportTo(out,backupPassword);}}
+                    else {try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new IOException("No se pudo leer");profile.importFrom(in,backupPassword);}}
+                    ui.post(()->Toast.makeText(this,request==4?"Firma respaldada":"Firma restaurada",Toast.LENGTH_LONG).show());
+                }else if(request==3) {
                     String result=getSharedPreferences(BuildService.STATE,0).getString("result","");
                     try(InputStream in=new FileInputStream(result);OutputStream out=getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException("No se pudo abrir el destino");OfflineBuilder.copy(in,out);}
                     new File(result).delete();getSharedPreferences(BuildService.STATE,0).edit().remove("result").apply();
@@ -91,7 +115,7 @@ public final class MainActivity extends Activity {
                     if(request==1){edit.putString("name",name).remove("jad");getSharedPreferences(BuildService.STATE,0).edit().putString("result","").putString("log","").apply();}edit.apply();
                 }
             }catch(Exception error){ui.post(()->Toast.makeText(this,error.toString(),Toast.LENGTH_LONG).show());}
-            finally{copying=false;ui.post(this::refresh);}
+            finally{backupPassword="";copying=false;ui.post(this::refresh);}
         });
     }
     @Override protected void onDestroy(){ui.removeCallbacks(poll);files.shutdown();super.onDestroy();}
