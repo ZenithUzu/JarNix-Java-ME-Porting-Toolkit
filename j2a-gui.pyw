@@ -258,14 +258,38 @@ class App(BaseTk):
         self.after(100, self.poll)
 
     def show_projects_history(self):
-        """Inspect current project paths, package IDs and conversion status without modifying files."""
-        lines = []
-        for game in self.games.values():
-            lines.append("{}\n  ID: {}\n  Proyecto: {}\n  Estado: {}".format(
-                game.name or game.auto_name, game.package or game.auto_package,
-                game.out(self.vars["out"].get()), game.status))
-        messagebox.showinfo("JarNix · Proyectos e historial",
-                            "\n\n".join(lines) if lines else "No hay juegos cargados. Añade un JAR para consultar su proyecto e identificador.")
+        """Browse current projects and persistent conversion history."""
+        win = tk.Toplevel(self)
+        win.title("JarNix · Proyectos e historial")
+        win.geometry("900x520")
+        tabs = ttk.Notebook(win)
+        tabs.pack(fill="both", expand=True, padx=14, pady=14)
+        for title, columns in (("Proyectos", ("Juego", "ID de paquete", "Estado", "Carpeta")),
+                               ("Historial", ("Fecha", "Juego", "ID de paquete", "Resultado"))):
+            page = ttk.Frame(tabs, padding=8)
+            tabs.add(page, text=title)
+            tree = ttk.Treeview(page, columns=columns, show="headings")
+            for column in columns:
+                tree.heading(column, text=column)
+                tree.column(column, width=190, stretch=True)
+            tree.pack(fill="both", expand=True)
+            if title == "Proyectos":
+                for game in self.games.values():
+                    tree.insert("", "end", values=(game.name or game.auto_name,
+                                game.package or game.auto_package, game.status,
+                                game.out(self.out_root())))
+            else:
+                for item in reversed(self.prefs.get("build_history", [])):
+                    tree.insert("", "end", values=(item["date"], item["name"], item["package"], item["status"]))
+
+    def record_history(self, game):
+        from datetime import datetime
+        entries = self.prefs.setdefault("build_history", [])
+        entries.append({"date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "name": game.name or game.auto_name,
+                        "package": game.package or game.auto_package, "status": game.status})
+        self.prefs["build_history"] = entries[-100:]
+        save_prefs(self.prefs)
 
     def close_window(self):
         if self.busy:
@@ -585,6 +609,8 @@ class App(BaseTk):
                     g = self.games.get(item[1])
                     if g:
                         g.status = item[2]
+                        if g.status in ("Listo", "Falló", "Correcto", "Completado"):
+                            self.record_history(g)
                         self.refresh()
                 elif item[0] == "line":
                     self.status.set(item[1])
