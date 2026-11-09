@@ -10,6 +10,54 @@ import java.io.*;
 public final class SaveSaf {
     private static final int REQUEST = 7412;
     private SaveSaf() {}
+    private static final java.util.concurrent.ExecutorService queue =
+        java.util.concurrent.Executors.newSingleThreadExecutor();
+    private static final java.util.concurrent.ConcurrentHashMap<String,Long> pending =
+        new java.util.concurrent.ConcurrentHashMap<String,Long>();
+    /** Called only after RMS has been safely committed to private storage. */
+    public static void saved(File file) {
+        Activity a=Host.getActivity();
+        if(a==null || !file.isFile())return;
+        if(a.getPreferences(0).getString("j2a-saves-tree",null)==null)return;
+        pending.put(file.getName(),file.lastModified());
+        queue.execute(() -> {
+            Long expected=pending.get(file.getName());
+            if(expected==null)return;
+            try {
+                backupOne(a,file);
+                pending.remove(file.getName(),expected);
+            }catch(Exception e){
+                android.util.Log.e("j2a-saves","SAF backup failed for "+file.getName(),e);
+                Host.runOnUi(() -> error(a,e));
+            }
+        });
+    }
+    private static void backupOne(Activity a,File file)throws Exception {
+        Uri destination=gameDir(a);
+        Uri target=child(a,destination,file.getName(),false);
+        // Copy to a new staging document before replacing the visible backup.
+        Uri staging=DocumentsContract.createDocument(a.getContentResolver(),destination,
+            "application/octet-stream",file.getName()+".pending");
+        if(staging==null)throw new IOException("No se pudo crear copia temporal");
+        boolean completed=false;
+        try {
+            try(InputStream in=new FileInputStream(file);
+                OutputStream out=a.getContentResolver().openOutputStream(staging,"wt")){
+                if(out==null)throw new IOException("No se pudo escribir el respaldo");
+                copy(in,out);
+            }
+            // SAF providers may not support atomic replacement; retain old backup until copy succeeds.
+            try(InputStream in=a.getContentResolver().openInputStream(staging);
+                OutputStream out=a.getContentResolver().openOutputStream(target,"wt")){
+                if(in==null||out==null)throw new IOException("No se pudo publicar respaldo");
+                copy(in,out);
+            }
+            completed=true;
+        }finally{
+            try{DocumentsContract.deleteDocument(a.getContentResolver(),staging);}catch(Exception ignored){}
+        }
+        if(!completed)throw new IOException("Respaldo incompleto");
+    }
     public static void choose(Activity activity) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
@@ -62,13 +110,7 @@ public final class SaveSaf {
         File rms=new File(a.getFilesDir(),"rms");Uri destination=gameDir(a);
         File[] files=rms.listFiles((dir,name)->name.endsWith(".rms"));
         if(files==null)return;
-        for(File file:files){
-            Uri target=child(a,destination,file.getName(),false);
-            try(InputStream in=new FileInputStream(file);OutputStream out=a.getContentResolver().openOutputStream(target,"wt")){
-                if(out==null)throw new IOException("No se pudo escribir "+file.getName());
-                copy(in,out);
-            }
-        }
+        for(File file:files)backupOne(a,file);
     }
     public static void restore(Activity a)throws Exception {
         Uri source=gameDir(a);
