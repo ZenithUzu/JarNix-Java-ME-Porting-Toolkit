@@ -24,19 +24,21 @@ public final class MainActivity extends Activity {
     private boolean copying;
     private String previousLog="";
     private final Runnable poll=new Runnable(){public void run(){refresh();ui.postDelayed(this,700);}};
+    private int accent(){return Build.VERSION.SDK_INT>=31?getColor(android.R.color.system_accent1_500):0xff536dfe;}
+    private int surface(){return Build.VERSION.SDK_INT>=31?getColor(android.R.color.system_neutral1_50):0xfff7f8fc;}
+    private int ink(){return Build.VERSION.SDK_INT>=31?getColor(android.R.color.system_neutral1_900):0xff1b1b21;}
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     private TextView text(String value,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
-    private Button button(LinearLayout parent,String label,View.OnClickListener action){Button b=new Button(this);b.setText(label);b.setTextColor(0xfff2bf5b);b.setOnClickListener(action);parent.addView(b,new LinearLayout.LayoutParams(-1,dp(54)));return b;}
+    private Button button(LinearLayout parent,String label,View.OnClickListener action){Button b=new Button(this);b.setText(label);b.setTextColor(accent());b.setAllCaps(false);b.setOnClickListener(action);parent.addView(b,new LinearLayout.LayoutParams(-1,dp(54)));return b;}
     @Override public void onCreate(Bundle state) {
-        super.onCreate(state);getWindow().setStatusBarColor(0xff142038);getWindow().setNavigationBarColor(0xff101a2b);
+        super.onCreate(state);getWindow().setStatusBarColor(surface());getWindow().setNavigationBarColor(surface());getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         SharedPreferences saved=getSharedPreferences(BuildService.STATE,0);
         if(saved.getBoolean("busy",false) && !BuildService.isRunning())saved.edit().putBoolean("busy",false).putString("log",saved.getString("log","")+"\nLa conversión anterior se interrumpió. Puedes intentarlo de nuevo.\n").apply();
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(20),dp(24),dp(20),dp(12));
-        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xff22334f,0xff0b1323}));
-        root.addView(text("J2A  /  OFFLINE COMPILER",12,0xfff2bf5b,true));
-        root.addView(text("Tus juegos Java,\nlistos para Android",28,0xfff0f3fa,true));
-        TextView detail=text("JAR → DEX → APK firmada\nTodo en este teléfono. Sin PC ni conexión.",14,0xffb1c0d7,false);detail.setPadding(0,dp(10),0,dp(16));root.addView(detail);
-        selected=text("Selecciona un juego .jar",15,0xfff2bf5b,true);root.addView(selected);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(20),dp(24),dp(20),dp(12));root.setBackgroundColor(surface());
+        root.addView(text("J2A · SIN CONEXIÓN",12,accent(),true));
+        root.addView(text("De Java a Android",28,ink(),true));
+        TextView detail=text("JAR → DEX → APK firmada\nTodo en este teléfono. Sin PC ni conexión.",14,ink(),false);detail.setPadding(0,dp(10),0,dp(16));root.addView(detail);
+        selected=text("Selecciona un juego .jar",15,accent(),true);root.addView(selected);
         pickJar=button(root,"01  ·  ELEGIR JUEGO JAR",v->pick(1));
         LinearLayout jadRow=new LinearLayout(this);jadRow.setOrientation(LinearLayout.HORIZONTAL);root.addView(jadRow);
         pickJad=new Button(this);pickJad.setText("Añadir JAD (opcional)");pickJad.setOnClickListener(v->pick(2));jadRow.addView(pickJad,new LinearLayout.LayoutParams(0,dp(48),1));
@@ -44,10 +46,10 @@ public final class MainActivity extends Activity {
         convert=button(root,"02  ·  CREAR APK EN ESTE TELÉFONO",v->startBuild());
         save=button(root,"03  ·  GUARDAR APK",v->saveApk());
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(6)));
-        status=text("Motor y compilador incluidos · Android 8 o superior",12,0xffb1c0d7,false);root.addView(status);
-        ScrollView scroll=new ScrollView(this);log=text("",12,0xffd8e1f2,false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);log.setPadding(0,dp(12),0,dp(12));scroll.addView(log);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        TextView note=text("La clave de firma pertenece a esta instalación. No borres los datos de la herramienta si quieres actualizar tus juegos con la misma firma.",11,0xffa9b6ca,false);root.addView(note);
-        setContentView(root);
+        status=text("Motor y compilador incluidos · Android 8 o superior",12,ink(),false);root.addView(status);
+        ScrollView scroll=new ScrollView(this);log=text("",12,ink(),false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);log.setPadding(0,dp(12),0,dp(12));scroll.addView(log);root.addView(scroll,new LinearLayout.LayoutParams(-1,dp(160)));
+        TextView note=text("La clave de firma pertenece a esta instalación. No borres los datos de la herramienta si quieres actualizar tus juegos con la misma firma.",11,ink(),false);root.addView(note);
+        ScrollView page=new ScrollView(this);page.setFillViewport(true);page.addView(root);setContentView(page);
     }
     @Override protected void onResume(){super.onResume();ui.post(poll);}
     @Override protected void onPause(){ui.removeCallbacks(poll);super.onPause();}
@@ -78,7 +80,8 @@ public final class MainActivity extends Activity {
                 if(request==3) {
                     String result=getSharedPreferences(BuildService.STATE,0).getString("result","");
                     try(InputStream in=new FileInputStream(result);OutputStream out=getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException("No se pudo abrir el destino");OfflineBuilder.copy(in,out);}
-                    ui.post(()->Toast.makeText(this,"APK guardada",Toast.LENGTH_LONG).show());
+                    new File(result).delete();getSharedPreferences(BuildService.STATE,0).edit().remove("result").apply();
+                    ui.post(()->Toast.makeText(this,"APK guardada. Archivo temporal eliminado.",Toast.LENGTH_LONG).show());
                 }else {
                     String name="Juego.jar";try(Cursor c=getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst())name=c.getString(0);}
                     File target=new File(getFilesDir(),request==1?"input.jar":"input.jad"),temporary=new File(getFilesDir(),"input.tmp");
