@@ -16,7 +16,7 @@ public final class BuildService extends Service {
     private Notification notification(String text) {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         return new Notification.Builder(this,"j2a-build").setSmallIcon(android.R.drawable.stat_sys_upload)
-                .setContentTitle("j2a Offline · creando APK").setContentText(text).setContentIntent(open).setOngoing(true).build();
+                .setContentTitle("J2Droid · creando APK").setContentText(text).setContentIntent(open).setOngoing(true).build();
     }
     @Override public void onCreate(){super.onCreate();getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel("j2a-build","Conversión local de juegos",NotificationManager.IMPORTANCE_LOW));}
     @Override public int onStartCommand(Intent intent,int flags,int startId) {
@@ -33,14 +33,27 @@ public final class BuildService extends Service {
                     File output=new File(getFilesDir(),"ready.apk");
                     java.nio.file.Files.move(result.toPath(),output.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                     getSharedPreferences(STATE,0).edit().putString("result",output.getAbsolutePath()).apply();
+                    recordBuild(name, "Correcto", lines.toString());
                 } finally { deleteTree(work); }
-            }catch(Throwable error){log("Error: "+error.toString());}
+            }catch(Throwable error){log("Error: "+error.toString());recordBuild(name,"Falló",error.toString());}
             finally {
                 running=false;getSharedPreferences(STATE,0).edit().putBoolean("busy",false).apply();
                 stopForeground(STOP_FOREGROUND_REMOVE);stopSelf(startId);
             }
         });
         return START_NOT_STICKY;
+    }
+    private void recordBuild(String name,String status,String detail){
+        try {
+            org.json.JSONArray history=new org.json.JSONArray(getSharedPreferences(STATE,0).getString("history","[]"));
+            org.json.JSONObject entry=new org.json.JSONObject();
+            entry.put("time",System.currentTimeMillis());entry.put("name",name==null?"Juego":name);
+            entry.put("status",status);entry.put("detail",detail.length()>1000?detail.substring(detail.length()-1000):detail);
+            history.put(entry);
+            org.json.JSONArray recent=new org.json.JSONArray();
+            for(int i=Math.max(0,history.length()-40);i<history.length();i++)recent.put(history.get(i));
+            getSharedPreferences(STATE,0).edit().putString("history",recent.toString()).apply();
+        }catch(Exception ignored){}
     }
     private static void deleteTree(File file) {
         if(file==null || !file.exists())return;
