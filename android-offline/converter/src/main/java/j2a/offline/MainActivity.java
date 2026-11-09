@@ -36,7 +36,7 @@ public final class MainActivity extends Activity {
         SharedPreferences saved=getSharedPreferences(BuildService.STATE,0);
         if(saved.getBoolean("busy",false) && !BuildService.isRunning())saved.edit().putBoolean("busy",false).putString("log",saved.getString("log","")+"\nLa conversión anterior se interrumpió. Puedes intentarlo de nuevo.\n").apply();
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(20),dp(24),dp(20),dp(12));root.setBackgroundColor(surface());
-        root.addView(text("J2A · SIN CONEXIÓN",12,accent(),true));
+        root.addView(text("J2Droid · SIN CONEXIÓN",12,accent(),true));
         root.addView(text("De Java a Android",28,ink(),true));
         TextView detail=text("JAR → DEX → APK firmada\nTodo en este teléfono. Sin PC ni conexión.",14,ink(),false);detail.setPadding(0,dp(10),0,dp(16));root.addView(detail);
         selected=text("Selecciona un juego .jar",15,accent(),true);root.addView(selected);
@@ -86,7 +86,7 @@ public final class MainActivity extends Activity {
                 backupPassword=password;
                 Intent intent=new Intent(restore?Intent.ACTION_OPEN_DOCUMENT:Intent.ACTION_CREATE_DOCUMENT)
                     .setType("application/octet-stream").addCategory(Intent.CATEGORY_OPENABLE);
-                if(!restore)intent.putExtra(Intent.EXTRA_TITLE,"j2a-firma.p12");
+                if(!restore)intent.putExtra(Intent.EXTRA_TITLE,"J2Droid-firma.p12");
                 startActivityForResult(intent,restore?5:4);
             }).show();
     }
