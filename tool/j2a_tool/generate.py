@@ -250,33 +250,17 @@ def copy_shaders(src_dir, assets_dir):
 
 
 def write_icon(suite, res_dir):
+    """Launcher icon = the PNG the JAR brings (MIDlet-Icon), same as J2Droid.
+
+    runtime/src/main/res-icon holds the resources; the MIDlet PNG replaces game_icon.png
+    (kept pixel-sharp by j2a_icon.xml). Without a PNG the generic phone icon stays."""
+    src = os.path.join(paths.runtime_dir(), "src", "main", "res-icon")
+    shutil.copytree(src, res_dir, dirs_exist_ok=True)
     data = suite.icon_data()
-    if data and data[:8] == b"\x89PNG\r\n\x1a\n":
-        d = os.path.join(res_dir, "drawable-nodpi")
-        os.makedirs(d, exist_ok=True)
-        try:
-            from PIL import Image  # optional: nicer, upscaled icon
-            img = Image.open(io.BytesIO(data)).convert("RGBA")
-            scale = max(1, 192 // max(img.size))
-            img = img.resize((img.size[0] * scale, img.size[1] * scale), Image.NEAREST)
-            img.save(os.path.join(d, "ic_launcher.png"))
-        except Exception:  # noqa: BLE001 - Pillow missing or bad PNG
-            with open(os.path.join(d, "ic_launcher.png"), "wb") as f:
-                f.write(data)
+    if data and data.startswith(bytes([0x89]) + b"PNG"):
+        with open(os.path.join(res_dir, "drawable-nodpi", "game_icon.png"), "wb") as f:
+            f.write(data)
         return True
-    d = os.path.join(res_dir, "drawable")
-    os.makedirs(d, exist_ok=True)
-    with io.open(os.path.join(d, "ic_launcher.xml"), "w", encoding="utf-8") as f:
-        f.write("""<?xml version="1.0" encoding="utf-8"?>
-<!-- Generic icon: the MIDlet did not declare a PNG icon. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#1E2A3A" android:pathData="M0,0h108v108h-108z"/>
-    <path android:fillColor="#5A96FF" android:pathData="M34,22h40a6,6 0 0 1 6,6v52a6,6 0 0 1 -6,6h-40a6,6 0 0 1 -6,-6v-52a6,6 0 0 1 6,-6z"/>
-    <path android:fillColor="#0E1520" android:pathData="M36,30h36v28h-36z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M40,64h8v4h-8zM50,64h8v4h-8zM60,64h8v4h-8zM40,72h8v4h-8zM50,72h8v4h-8zM60,72h8v4h-8z"/>
-</vector>
-""")
     return False
 
 

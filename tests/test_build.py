@@ -29,6 +29,9 @@ class BuildTests(unittest.TestCase):
             mock = patch.object(build.paths, name, return_value=result)
             mock.start()
             self.addCleanup(mock.stop)
+        keys = patch.object(build.signing, 'ensure_identity', return_value=self.project / 'identity.p12')
+        keys.start()
+        self.addCleanup(keys.stop)
 
     def metadata(self, filename):
         (self.apk_dir / 'output-metadata.json').write_text(json.dumps({

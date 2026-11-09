@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Game launcher icon: the PNG the JAR brings (MIDlet-Icon), unchanged; pixels kept sharp when scaled. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/game_icon" android:filter="false" android:antialias="false" />

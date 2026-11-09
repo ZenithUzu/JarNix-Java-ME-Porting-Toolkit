@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from . import paths
+from . import paths, signing
 
 
 def build_apk(project, output=None, log=print):
@@ -25,17 +25,12 @@ def build_apk(project, output=None, log=print):
         env['ANDROID_HOME'] = sdk
     command = [java, '-classpath', str(wrapper), 'org.gradle.wrapper.GradleWrapperMain',
                '--no-daemon', '--console=plain']
-    # Same PKCS12 identity as j2a Android; never copy secrets into the project.
-    signing_file = Path(os.environ.get('J2A_SIGNING_FILE') or
-                        (Path.home() / '.j2a' / 'signing' / 'identity.p12')).expanduser()
-    signing_password = os.environ.get('J2A_SIGNING_PASSWORD', '')
-    if signing_file.is_file():
-        if not signing_password:
-            raise RuntimeError('Falta J2A_SIGNING_PASSWORD para usar la firma portátil .p12.')
-        env['J2A_SIGNING_FILE'] = str(signing_file.resolve())
-        env['J2A_SIGNING_PASSWORD'] = signing_password
-        init_script = project / '.j2a-signing.init.gradle'
-        init_script.write_text("""gradle.beforeProject { p ->
+    # Same keys as J2Droid (Android): ~/.j2a/signing/identity.p12, no password to type.
+    signing_file = signing.ensure_identity(log)
+    env['J2A_SIGNING_FILE'] = str(signing_file.resolve())
+    env['J2A_SIGNING_PASSWORD'] = signing.password()
+    init_script = project / '.j2a-signing.init.gradle'
+    init_script.write_text("""gradle.beforeProject { p ->
     if (p.path == ':app') {
         p.plugins.withId('com.android.application') {
             def android = p.extensions.getByName('android')
@@ -54,10 +49,7 @@ def build_apk(project, output=None, log=print):
     }
 }
 """, encoding='utf-8')
-        command += ['--init-script', str(init_script)]
-        log('Usando firma portátil J2A para esta APK.')
-    else:
-        log('Aviso: firma debug local, incompatible con las firmas J2A de Android.')
+    command += ['--init-script', str(init_script)]
     command.append(':app:assembleDebug')
     log('Compilando APK instalable. La primera compilación descarga Gradle y sus dependencias…')
     build_log = project / 'apk-build.log'
@@ -104,5 +96,5 @@ def build_apk(project, output=None, log=print):
             os.replace(str(temporary), str(target))
         result.append(str(target))
         log('APK lista: %s' % target)
-    log('Firma: %s' % ('J2A portátil' if signing_file.is_file() else 'debug local'))
+    log('Firmada con tus llaves J2A (las mismas que J2Droid).')
     return result

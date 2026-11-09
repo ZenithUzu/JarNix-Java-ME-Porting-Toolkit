@@ -13,7 +13,10 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
-/** One exportable signing identity for all new J2A game APKs. Backups are password protected. */
+/**
+ * One signing identity for every game APK. The exported keys file (.p12) uses a fixed built-in
+ * password, so exporting/importing never asks the user for one. JarNix (PC) reads the same file.
+ */
 public final class SigningProfile {
     private static final String FILE = "signing/identity.p12";
     private static final String ALIAS = "j2a-games";
@@ -32,8 +35,14 @@ public final class SigningProfile {
     private KeyStore load(File source,String password)throws Exception{
         KeyStore ks=KeyStore.getInstance("PKCS12");
         try(InputStream in=new FileInputStream(source)){ks.load(in,password.toCharArray());}
-        if(!ks.isKeyEntry(ALIAS))throw new GeneralSecurityException("El respaldo no contiene la firma J2A");
+        if(keyAlias(ks)==null)throw new GeneralSecurityException("El archivo no contiene llaves de firma");
         return ks;
+    }
+    /** "j2a-games", or the first key of a .p12 made elsewhere (e.g. an Android debug keystore). */
+    private static String keyAlias(KeyStore ks)throws KeyStoreException{
+        if(ks.isKeyEntry(ALIAS))return ALIAS;
+        for(Enumeration<String> e=ks.aliases();e.hasMoreElements();){String a=e.nextElement();if(ks.isKeyEntry(a))return a;}
+        return null;
     }
     private void write(KeyStore ks,File target,String password)throws Exception{
         File parent=target.getParentFile();if(!parent.isDirectory()&&!parent.mkdirs())throw new IOException("No se pudo crear la carpeta de firmas");
@@ -58,21 +67,29 @@ public final class SigningProfile {
     }
     public synchronized PrivateKey key()throws Exception{return (PrivateKey)identity().getKey(ALIAS,localPassword().toCharArray());}
     public synchronized X509Certificate certificate()throws Exception{return (X509Certificate)identity().getCertificate(ALIAS);}
-    public synchronized void exportTo(OutputStream out,String backupPassword)throws Exception{
-        if(backupPassword==null||backupPassword.length()<12)throw new IllegalArgumentException("La contraseña necesita al menos 12 caracteres");
-        KeyStore local=identity();KeyStore backup=KeyStore.getInstance("PKCS12");backup.load(null,backupPassword.toCharArray());
-        backup.setKeyEntry(ALIAS,local.getKey(ALIAS,localPassword().toCharArray()),backupPassword.toCharArray(),local.getCertificateChain(ALIAS));
-        backup.store(out,backupPassword.toCharArray());
+    /** Fixed password of exported key files; shared with JarNix (tool/j2a_tool/signing.py). */
+    public static final String FILE_PASSWORD = "j2droid";
+    /** Thrown when an old backup was protected with a personal password. */
+    public static final class NeedsPassword extends GeneralSecurityException { NeedsPassword(){super("Este archivo de llaves tiene contraseña");} }
+    public synchronized boolean exists(){return file().exists();}
+    public synchronized void exportTo(OutputStream out)throws Exception{
+        KeyStore local=identity();KeyStore backup=KeyStore.getInstance("PKCS12");backup.load(null,FILE_PASSWORD.toCharArray());
+        backup.setKeyEntry(ALIAS,local.getKey(ALIAS,localPassword().toCharArray()),FILE_PASSWORD.toCharArray(),local.getCertificateChain(ALIAS));
+        backup.store(out,FILE_PASSWORD.toCharArray());
     }
-    public synchronized void importFrom(InputStream in,String backupPassword)throws Exception{
-        if(file().exists())throw new IllegalStateException("Ya existe una firma local. No se reemplaza para proteger las actualizaciones.");
+    /** Replaces the current keys. password is only needed for old backups made with a personal password. */
+    public synchronized void importFrom(InputStream in,String password)throws Exception{
         File temporary=new File(context.getCacheDir(),"import-signing.p12");
         try {
-            try(OutputStream out=new FileOutputStream(temporary)){byte[] buf=new byte[8192];int n,total=0;while((n=in.read(buf))!=-1){total+=n;if(total>1024*1024)throw new IOException("Respaldo demasiado grande");out.write(buf,0,n);}}
-            KeyStore imported=load(temporary,backupPassword);
-            KeyStore local=KeyStore.getInstance("PKCS12");String password=localPassword();local.load(null,password.toCharArray());
-            local.setKeyEntry(ALIAS,imported.getKey(ALIAS,backupPassword.toCharArray()),password.toCharArray(),imported.getCertificateChain(ALIAS));
-            write(local,file(),password);
+            try(OutputStream out=new FileOutputStream(temporary)){byte[] buf=new byte[8192];int n,total=0;while((n=in.read(buf))!=-1){total+=n;if(total>1024*1024)throw new IOException("Archivo de llaves demasiado grande");out.write(buf,0,n);}}
+            String secret=password==null||password.isEmpty()?FILE_PASSWORD:password;
+            KeyStore imported;
+            try{imported=load(temporary,secret);}
+            catch(IOException wrongPassword){if(password==null)throw new NeedsPassword();throw new GeneralSecurityException("Contraseña incorrecta");}
+            KeyStore local=KeyStore.getInstance("PKCS12");String localPassword=localPassword();local.load(null,localPassword.toCharArray());
+            String alias=keyAlias(imported);
+            local.setKeyEntry(ALIAS,imported.getKey(alias,secret.toCharArray()),localPassword.toCharArray(),imported.getCertificateChain(alias));
+            write(local,file(),localPassword);
         }finally{temporary.delete();}
     }
 }

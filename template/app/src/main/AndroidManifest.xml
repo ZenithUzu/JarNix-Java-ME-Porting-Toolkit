@@ -13,7 +13,7 @@
         android:enableOnBackInvokedCallback="false"
         android:appCategory="game"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@drawable/j2a_icon"
         android:isGame="true"
         android:label="@@APP_NAME@@"
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
