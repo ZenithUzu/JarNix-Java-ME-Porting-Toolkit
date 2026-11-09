@@ -42,7 +42,7 @@ Remove-Item Env:J2A_SIGNING_PASSWORD
 
 Si el archivo de firma existe pero no se proporciona contraseña, la compilación se detiene; **no se firma silenciosamente con otra clave**. Sin un perfil importado, el comportamiento anterior de firma debug permanece disponible, pero no es compatible con la firma de Android.
 
-**Limitación importante:** usar la misma firma no basta para actualizar una app: también se necesitan el mismo `applicationId` y un `versionCode` superior. Actualmente PC y Android calculan los identificadores de juego de manera diferente por defecto. Para actualizar un juego creado en Android desde PC, debes hacer coincidir explícitamente el paquete (por ejemplo, mediante `--package` al generar el proyecto), y comprobar la versión antes de instalar. Esta integración todavía no ha pasado una compilación ni prueba de actualización cruzada.
+**Actualización cruzada:** PC y Android calculan ahora el mismo `applicationId` por defecto a partir del fabricante, nombre y clase MIDlet, y ambos usan códigos de versión basados en segundos desde 2020. La actualización requiere además **la misma clave privada** y un `versionCode` estrictamente superior. Si se compilan dos APK durante el mismo segundo o el reloj de algún dispositivo es incorrecto, la versión puede no aumentar. Los proyectos PC ya generados conservan su paquete antiguo hasta regenerarlos. La compatibilidad cruzada sigue pendiente de prueba real; no desinstales juegos con partidas para solucionar un error de firma.
 
 ## Uso con interfaz (lo más fácil)
 
