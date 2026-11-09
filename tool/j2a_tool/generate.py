@@ -39,7 +39,7 @@ def official_package(suite, midlet_class):
     Hash MIDlet-Vendor, MIDlet-Name and the selected MIDlet class as UTF-8.
     """
     import hashlib
-    identity = (suite.vendor or "") + "\\n" + (suite.name or "") + "\\n" + midlet_class
+    identity = (suite.vendor or "") + "\n" + (suite.name or "") + "\n" + midlet_class
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
     return "com.j2a.game.g" + digest
 
@@ -56,7 +56,7 @@ def prop_escape(s, key=False):
         if ch == "\\":
             out.append("\\\\")
         elif ch == "\n":
-            out.append("\\n")
+            out.append("\n")
         elif ch == "\r":
             out.append("\\r")
         elif ch == "\t":
