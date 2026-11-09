@@ -2,6 +2,7 @@ name: Android offline converter
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths: ['tests/menu_ui_smoke.py', 'android-offline/**', 'runtime/**', 'runtime-extra/**', 'runtime-m3g/**', '.github/workflows/android-offline.yml']
   workflow_dispatch:
 permissions:
@@ -32,10 +33,12 @@ jobs:
           chmod +x gradlew
           ./gradlew :converter:assembleDebug :converter:assembleAndroidTest --stacktrace
           ./gradlew --stop
+      - name: Prepare installable APK
+        run: cp android-offline/converter/build/outputs/apk/debug/converter-debug.apk j2a-offline-android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: j2a-offline-android
-          path: android-offline/converter/build/outputs/apk/debug/converter-debug.apk
+          path: j2a-offline-android.apk
           if-no-files-found: error
       - name: Enable emulator hardware acceleration
         run: |
@@ -76,3 +79,24 @@ jobs:
             menu-screenshots/*.png
           if-no-files-found: warn
 
+
+  release:
+    name: Publish installable Android APK
+    needs: apk
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: j2a-offline-android
+          path: release-assets
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/j2a-offline-android.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "j2a Offline $GITHUB_REF_NAME" \
+            --notes "APK de prueba de j2a Offline (firmada con clave de depuración de GitHub Actions). Para uso normal, conserva una firma de producción propia: esta compilación no garantiza actualizaciones compatibles entre versiones."
