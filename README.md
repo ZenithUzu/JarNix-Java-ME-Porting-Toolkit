@@ -44,6 +44,11 @@ Si el archivo de firma existe pero no se proporciona contraseña, la compilació
 
 **Actualización cruzada:** PC y Android calculan ahora el mismo `applicationId` por defecto a partir del fabricante, nombre y clase MIDlet, y ambos usan códigos de versión basados en segundos desde 2020. La actualización requiere además **la misma clave privada** y un `versionCode` estrictamente superior. Si se compilan dos APK durante el mismo segundo o el reloj de algún dispositivo es incorrecto, la versión puede no aumentar. Los proyectos PC ya generados conservan su paquete antiguo hasta regenerarlos. La compatibilidad cruzada sigue pendiente de prueba real; no desinstales juegos con partidas para solucionar un error de firma.
 
+
+### Respaldo de partidas Java mediante SAF (motor compartido)
+
+Tanto los APK generados desde **PC** como los generados desde **Android** utilizan el motor RMS común. En el menú del juego, abre **Más opciones → Seleccionar carpeta Java (SAF)** y autoriza la carpeta `Java` que hayas creado en el almacenamiento compartido. Cada APK requiere su propio permiso SAF. Los registros se guardan primero en el almacenamiento privado y después se respaldan automáticamente en `Java/saves/<applicationId>/` mediante una cola de escritura. Se conserva una copia anterior al publicar un respaldo nuevo. El menú también ofrece respaldo manual y restauración de registros RMS faltantes. **La restauración automática al iniciar y la migración de guardados de APIs distintas de RMS aún no están implementadas.** Si no autorizas la carpeta, el juego sigue guardando localmente, pero no tendrás una copia externa. Esta función todavía necesita pruebas en dispositivos reales y con distintos proveedores SAF.
+
 ## Uso con interfaz (lo más fácil)
 
 ### APK lista con j2a Studio
