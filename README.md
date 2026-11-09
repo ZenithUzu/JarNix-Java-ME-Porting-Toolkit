@@ -28,6 +28,22 @@ cd symbian-a-Android-port
 python tool/j2a.py doctor      # comprueba Java, SDK y descompiladores
 ```
 
+
+## Firma compartida entre Android y PC (experimental)
+
+La app Android permite **Respaldar firma** como archivo PKCS#12 (`.p12`) protegido por contraseña. Para que j2a PC use **exactamente la misma clave privada**, copia ese respaldo a `%USERPROFILE%\\.j2a\\signing\\identity.p12` (Windows) o define la ruta con `J2A_SIGNING_FILE`. Define también `J2A_SIGNING_PASSWORD` en el entorno antes de ejecutar la GUI o CLI. Ejemplo en PowerShell (solo para esta sesión):
+
+```powershell
+$env:J2A_SIGNING_FILE = "$HOME\\.j2a\\signing\\identity.p12"
+$env:J2A_SIGNING_PASSWORD = Read-Host "Contraseña del respaldo"
+python tool/j2a.py build proyectos/MiJuego-android
+Remove-Item Env:J2A_SIGNING_PASSWORD
+```
+
+Si el archivo de firma existe pero no se proporciona contraseña, la compilación se detiene; **no se firma silenciosamente con otra clave**. Sin un perfil importado, el comportamiento anterior de firma debug permanece disponible, pero no es compatible con la firma de Android.
+
+**Limitación importante:** usar la misma firma no basta para actualizar una app: también se necesitan el mismo `applicationId` y un `versionCode` superior. Actualmente PC y Android calculan los identificadores de juego de manera diferente por defecto. Para actualizar un juego creado en Android desde PC, debes hacer coincidir explícitamente el paquete (por ejemplo, mediante `--package` al generar el proyecto), y comprobar la versión antes de instalar. Esta integración todavía no ha pasado una compilación ni prueba de actualización cruzada.
+
 ## Uso con interfaz (lo más fácil)
 
 ### APK lista con j2a Studio
