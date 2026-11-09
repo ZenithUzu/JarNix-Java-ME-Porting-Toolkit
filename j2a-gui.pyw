@@ -609,7 +609,7 @@ class App(BaseTk):
                     g = self.games.get(item[1])
                     if g:
                         g.status = item[2]
-                        if g.status in ("Listo", "Falló", "Correcto", "Completado"):
+                        if g.status in ("Instalado", "APK lista", "Proyecto listo", "Falló"):
                             self.record_history(g)
                         self.refresh()
                 elif item[0] == "line":
