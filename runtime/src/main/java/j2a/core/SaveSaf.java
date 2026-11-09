@@ -53,7 +53,8 @@ public final class SaveSaf {
         byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
     }
     private static Uri gameDir(Activity a)throws Exception {
-        Uri root=tree(a);
+        Uri selected=tree(a);
+        Uri root=DocumentsContract.buildDocumentUriUsingTree(selected,DocumentsContract.getTreeDocumentId(selected));
         Uri saves=child(a,root,"saves",true);
         return child(a,saves,a.getPackageName(),true);
     }
