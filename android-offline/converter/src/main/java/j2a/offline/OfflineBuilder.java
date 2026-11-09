@@ -55,8 +55,11 @@ public final class OfflineBuilder {
         int nextVersion=Math.max(Math.max(game.versionCode,clockVersion),context.getSharedPreferences("game-versions",0).getInt(game.appId,0)+1);
         BinaryXml.versionCode(manifest,nextVersion);apk.put("AndroidManifest.xml",manifest);
         if(game.icon!=null) {
-            apk.put("resources.arsc",BinaryXml.replace(apk.get("resources.arsc"),Collections.singletonMap("res/drawable/ic_launcher.xml","res/drawable/game_icon.png")));
-            apk.remove("res/drawable/ic_launcher.xml");apk.put("res/drawable/game_icon.png",game.icon);
+            // Launcher icon = the JAR's own PNG (same as JarNix): replace the template's game_icon.png file.
+            String slot=null;
+            for(String path:apk.keySet())if(path.startsWith("res/") && path.endsWith("/game_icon.png")){slot=path;break;}
+            if(slot==null)throw new IOException("La plantilla del motor no contiene game_icon.png");
+            apk.put(slot,game.icon);
         }
         StringBuilder resourceIndex=new StringBuilder();
         for(Map.Entry<String,byte[]> entry:game.entries.entrySet()) {

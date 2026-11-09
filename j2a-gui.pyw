@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "too
 import tkinter as tk  # noqa: E402
 from tkinter import filedialog, messagebox, ttk  # noqa: E402
 
-from j2a_tool import adb, cli, generate, paths  # noqa: E402
+from j2a_tool import adb, cli, generate, paths, signing  # noqa: E402
 from j2a_tool.jarinfo import MidletSuite  # noqa: E402
 
 try:  # optional: drop .jar files onto the window (pip install tkinterdnd2; j2a-gui.bat installs it)
@@ -189,6 +189,8 @@ class App(BaseTk):
         ttk.Button(row, text="Quitar", command=self.remove_games).pack(side="left", padx=(6, 0))
         ttk.Button(row, text="Abrir carpeta", command=self.open_out).pack(side="right")
         ttk.Button(row, text="Proyectos e historial", command=self.show_projects_history).pack(side="right", padx=8)
+        ttk.Button(row, text="Importar llaves", command=self.import_keys).pack(side="right")
+        ttk.Button(row, text="Exportar llaves", command=self.export_keys).pack(side="right", padx=(0, 6))
 
         # Shared output base with separate proyectos/ and apk/ folders
         save = ttk.Frame(f)
@@ -225,7 +227,7 @@ class App(BaseTk):
         self.adb_status = tk.StringVar(value="ADB: conecta Android y autoriza la depuración USB.")
         ttk.Label(self.opts, textvariable=self.adb_status, style="Muted.TLabel").grid(row=r + 3, column=0, columnspan=4, sticky="w")
         ttk.Label(self.opts, text="Resolución, widescreen, filtros, FPS y controles se ajustan dentro del juego.\n"
-                  "La APK usa firma de depuración. La primera compilación necesita internet y el SDK de Android.",
+                  "Las APK se firman con tus llaves (las mismas que J2Droid). La primera compilación necesita internet y el SDK de Android.",
                   style="Muted.TLabel").grid(row=r + 4, column=0, columnspan=4, sticky="w", pady=8)
         self.opts.grid(row=6, column=0, sticky="ew")
         self.update_options_label()
@@ -281,6 +283,40 @@ class App(BaseTk):
             else:
                 for item in reversed(self.prefs.get("build_history", [])):
                     tree.insert("", "end", values=(item["date"], item["name"], item["package"], item["status"]))
+
+    # ------------------------------------------------------------- llaves
+    def export_keys(self):
+        dest = filedialog.asksaveasfilename(title="Exportar llaves", initialfile="JarNix-llaves.p12",
+                                            defaultextension=".p12", filetypes=[("Llaves", "*.p12")])
+        if not dest:
+            return
+        try:
+            signing.export_to(dest, log=lambda m: self.write(m + "\n"))
+            messagebox.showinfo("Llaves exportadas", "Guardadas en:\n%s\n\nImpórtalas en J2Droid o en otra PC para "
+                                "poder actualizar tus juegos sin perder partidas." % dest)
+        except Exception as error:  # noqa: BLE001
+            messagebox.showerror("No se pudieron exportar", str(error))
+
+    def import_keys(self):
+        src = filedialog.askopenfilename(title="Importar llaves", filetypes=[("Llaves", "*.p12 *.pfx"), ("Todos", "*.*")])
+        if not src:
+            return
+        if signing.identity_file().is_file() and not messagebox.askyesno(
+                "¿Reemplazar llaves?", "Los juegos que ya creaste con las llaves actuales solo podrán actualizarse "
+                "si vuelves a importarlas. Se guarda una copia como identity.anterior.p12.\n\n¿Continuar?"):
+            return
+        try:
+            old = None
+            if signing.needs_password(src):  # only backups made by older versions
+                from tkinter import simpledialog
+                old = simpledialog.askstring("Respaldo antiguo", "Este archivo se hizo con una versión anterior que "
+                                             "usaba contraseña. Escríbela una vez:", show="*", parent=self)
+                if not old:
+                    return
+            signing.import_from(src, old)
+            messagebox.showinfo("Llaves importadas", "Las próximas APK usarán estas llaves.")
+        except Exception as error:  # noqa: BLE001
+            messagebox.showerror("No se pudieron importar", str(error))
 
     def record_history(self, game):
         from datetime import datetime

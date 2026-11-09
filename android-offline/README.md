@@ -30,10 +30,8 @@ conservan nombre, editor y clase MIDlet. Los ajustes se cambian dentro del juego
   Límite de entrada: 64 MiB; recursos descomprimidos: 200 MiB, con 32 MiB por entrada.
 - PNG/GIF, manifiesto/JAD, nombre y llamadas de dibujo/buffers aportan pistas de resolución.
   La confianza se muestra en el registro. Si falta evidencia se usa 240x320 y el menú permite corregirla.
-- Los juegos nuevos se firman con una identidad PKCS#12 reutilizable, almacenada en `files/signing/identity.p12`. Desde la app puedes exportar un respaldo `.p12` protegido con contraseña (mínimo 12 caracteres) y restaurarlo en una instalación limpia **antes de generar el primer juego**. La restauración no reemplaza una firma ya existente, para evitar invalidar actualizaciones. Conserva tanto el respaldo como la contraseña fuera del teléfono. Borrar datos o
-  desinstalar la herramienta elimina la posibilidad de actualizar APKs firmadas con esa clave.
-  No es la clave de depuración de tu PC: una APK de escritorio con el mismo paquete/firma distinta
-  no se puede actualizar directamente. La aplicación no desinstala juegos ni borra sus datos.
+- Los juegos se firman con tus llaves J2A (`files/signing/identity.p12`). En la app, **Exportar llaves** guarda un `.p12` sin contraseña e **Importar llaves** lo restaura (también tras reinstalar). El mismo archivo sirve en JarNix (PC).
+  La aplicación no desinstala juegos ni borra sus datos.
 - APIs ausentes, ofuscación incompatible, cámaras fijas o recursos cifrados siguen necesitando
   parches del juego; una APK compilada no garantiza que todos los juegos funcionen.
 - Una interrupción del proceso permite volver a intentarlo, pero no reanuda un compilador a medias.

@@ -19,7 +19,7 @@ MiJuego.jar ──► j2a analyze ──► j2a port ──► proyecto Android 
 
 ## Estado de las interfaces
 
-JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una consulta de los JAR cargados en la sesión (nombre, ID, destino y estado). Las funciones de historial y proyectos están en evolución y requieren validación de persistencia y pruebas. J2Droid incorpora accesos iniciales a Proyectos (archivo seleccionado) e Historial (registro de conversiones), además de **Exportar firma** e **Importar firma**. El rediseño completo basado en el mockup y la persistencia de proyectos/historial están pendientes; no deben confundirse con funciones ya terminadas.
+JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una consulta de los JAR cargados en la sesión (nombre, ID, destino y estado). Las funciones de historial y proyectos están en evolución y requieren validación de persistencia y pruebas. J2Droid tiene una sola pantalla: **Importar JAR → Crear APK → Instalar / Guardar**, más **Exportar llaves** e **Importar llaves**. Sus colores siguen Material You (Android 12+) y su icono es adaptativo.
 
 ## Nombres y compatibilidad
 
@@ -47,18 +47,17 @@ python tool/j2a.py doctor      # comprueba Java, SDK y descompiladores
 ```
 
 
-## Firma compartida entre Android y PC (experimental)
+## Llaves de firma (PC y Android, sin contraseñas)
 
-**J2Droid** permite **Respaldar firma** como archivo PKCS#12 (`.p12`) protegido por contraseña. Para que j2a PC use **exactamente la misma clave privada**, copia ese respaldo a `%USERPROFILE%\\.j2a\\signing\\identity.p12` (Windows) o define la ruta con `J2A_SIGNING_FILE`. Define también `J2A_SIGNING_PASSWORD` en el entorno antes de ejecutar la GUI o CLI. Ejemplo en PowerShell (solo para esta sesión):
+JarNix y J2Droid firman los juegos con las **mismas llaves**, guardadas en `%USERPROFILE%\.j2a\signing\identity.p12` (PC) y dentro de J2Droid (Android).
 
-```powershell
-$env:J2A_SIGNING_FILE = "$HOME\\.j2a\\signing\\identity.p12"
-$env:J2A_SIGNING_PASSWORD = Read-Host "Contraseña del respaldo"
-python tool/j2a.py build proyectos/MiJuego-android
-Remove-Item Env:J2A_SIGNING_PASSWORD
-```
+- **Exportar llaves** guarda un archivo `.p12`; **Importar llaves** lo usa. No se pide ninguna contraseña.
+- El archivo de una herramienta sirve en la otra: exporta en J2Droid e importa en JarNix, o al revés.
+- Expórtalas antes de borrar o reinstalar J2Droid; al importarlas de nuevo, tus juegos se actualizan sin perder partidas.
+- La primera vez, JarNix crea las llaves a partir de tu clave de Android Studio (`~/.android/debug.keystore`), así los juegos que ya instalaste desde la PC se siguen actualizando.
+- Los respaldos antiguos con contraseña aún se pueden importar una vez; después vuelve a exportar.
 
-Si el archivo de firma existe pero no se proporciona contraseña, la compilación se detiene; **no se firma silenciosamente con otra clave**. Sin un perfil importado, el comportamiento anterior de firma debug permanece disponible, pero no es compatible con la firma de Android.
+Guarda el archivo `.p12` en un lugar privado: quien lo tenga puede firmar actualizaciones de tus juegos.
 
 **Actualización cruzada:** PC y Android calculan ahora el mismo `applicationId` por defecto a partir del fabricante, nombre y clase MIDlet, y ambos usan códigos de versión basados en segundos desde 2020. La actualización requiere además **la misma clave privada** y un `versionCode` estrictamente superior. Si se compilan dos APK durante el mismo segundo o el reloj de algún dispositivo es incorrecto, la versión puede no aumentar. Los proyectos PC ya generados conservan su paquete antiguo hasta regenerarlos. La compatibilidad cruzada sigue pendiente de prueba real; no desinstales juegos con partidas para solucionar un error de firma.
 
@@ -97,9 +96,9 @@ cuando ya existe. La primera compilación descarga Gradle y sus dependencias: ne
 el JDK de Android Studio y los paquetes/licencias del SDK que pida Gradle (SDK Manager).
 No hace falta abrir cada proyecto en Android Studio para compilar.
 
-La APK usa la **clave de depuración local**, adecuada para instalar y probar en tu teléfono.
-Para publicar o distribuir actualizaciones con identidad propia, configura tu firma de producción.
-No desinstales un juego con partidas guardadas para actualizar: conserva la misma clave de firma.
+La APK se firma con tus **llaves J2A** (ver *Llaves de firma*), las mismas que usa J2Droid.
+Cada APK usa el icono original que trae el JAR (igual en PC y Android); si el JAR no trae icono se usa uno genérico.
+No desinstales un juego con partidas guardadas para actualizar: conserva tus llaves.
 
 Los perfiles Original, Equilibrado, Pixel art, Televisión y Teléfono clásico ajustan escalado y efecto.
 También puedes elegirlos por separado. Los efectos LCD conservan ahora los detalles del filtro anterior.
