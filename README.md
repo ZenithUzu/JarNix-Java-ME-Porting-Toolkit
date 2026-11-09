@@ -11,9 +11,15 @@ MiJuego.jar ──► j2a analyze ──► j2a port ──► proyecto Android 
                  (qué APIs usa)   (parche + descompilación + verificación)
 ```
 
+## Proyectos y repositorios
+
+- **JarNix (Windows/PC):** este repositorio; interfaz Python, CLI, generador y motor J2Legacy.
+- **[J2Droid (Android)](https://github.com/ZenithUzu/J2Droid):** repositorio independiente, con su propio código Android, icono adaptable y distribución de **una sola APK instaladora**. Los juegos convertidos generan APK independientes.
+- **Código compartido:** J2Droid sincroniza `android-offline/`, `runtime/`, `runtime-extra/` y `runtime-m3g/` desde JarNix mediante GitHub Actions. Los cambios al motor deben realizarse aquí para evitar divergencias. La compilación y publicación deben verificarse en [Actions de J2Droid](https://github.com/ZenithUzu/J2Droid/actions).
+
 ## Estado de las interfaces
 
-JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una consulta de los JAR cargados en la sesión (nombre, ID, destino y estado). Todavía no es un historial persistente de compilaciones ni una biblioteca de proyectos guardados. J2Droid incorpora accesos iniciales a Proyectos (archivo seleccionado) e Historial (registro de la última conversión), además de **Exportar firma** e **Importar firma**. El rediseño completo basado en el mockup y la persistencia de proyectos/historial están pendientes; no deben confundirse con funciones ya terminadas.
+JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una consulta de los JAR cargados en la sesión (nombre, ID, destino y estado). Las funciones de historial y proyectos están en evolución y requieren validación de persistencia y pruebas. J2Droid incorpora accesos iniciales a Proyectos (archivo seleccionado) e Historial (registro de conversiones), además de **Exportar firma** e **Importar firma**. El rediseño completo basado en el mockup y la persistencia de proyectos/historial están pendientes; no deben confundirse con funciones ya terminadas.
 
 ## Nombres y compatibilidad
 
@@ -21,7 +27,7 @@ JarNix muestra la identidad renovada y dispone de **Proyectos e historial**, una
 - **J2Droid**: conversor autónomo de JAR/JAD a APK directamente en Android.
 - **J2Legacy**: nombre del motor compartido de compatibilidad Java ME; internamente se conservan los identificadores técnicos `j2a`.
 
-Los nombres nuevos son visibles; **no se renombran** comandos (`tool/j2a.py`), paquetes Java, rutas de caché, IDs de aplicaciones, firmas ni archivos de proyecto existentes. Esto evita romper scripts y actualizaciones. Los nombres de artefactos de CI se mantienen temporalmente para no invalidar enlaces y automatizaciones.
+Los nombres nuevos son visibles; **no se renombran** comandos (`tool/j2a.py`), paquetes Java, rutas de caché, IDs de aplicaciones, firmas ni archivos de proyecto existentes. Esto evita romper scripts y actualizaciones. El instalador de J2Droid en su repositorio independiente se publica con el nombre `J2Droid.apk`; los artefactos antiguos de este repositorio pueden conservar nombres históricos.
 
 ## Requisitos
 
@@ -300,6 +306,12 @@ python samples/demo-midlet/build.py -o demo.jar     # genera demo.jar + demo.jad
 python tool/j2a.py port demo.jar -o demo-android
 python tool/j2a.py verify demo-android              # compila con javac sin abrir Gradle
 ```
+
+## Licencia, créditos y uso de IA
+
+El código original del proyecto se publica bajo la [licencia MIT](LICENSE), **sin relicenciar componentes ajenos**. Las APIs procedentes de J2ME Loader, M3G de Nokia, shaders, D8/R8, apksig y otras dependencias mantienen sus propios términos y avisos: consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [runtime-extra/NOTICE-EXTRA.md](runtime-extra/NOTICE-EXTRA.md) y [runtime-m3g/NOTICE-M3G.md](runtime-m3g/NOTICE-M3G.md).
+
+Proyecto personal, experimental y sin fines de lucro, desarrollado con asistencia de IA (incluidos ChatGPT y Claude). Las aportaciones asistidas requieren revisión y pruebas; no se atribuye autoría sobre bibliotecas, motores o juegos de terceros.
 
 ## Aviso legal
 
