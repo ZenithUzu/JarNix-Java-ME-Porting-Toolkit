@@ -51,7 +51,8 @@ public final class OfflineBuilder {
         Map<String,byte[]> apk=Archives.load(base);
         apk.keySet().removeIf(p->p.toUpperCase(Locale.ROOT).startsWith("META-INF/") || p.startsWith("assets/j2a/"));
         Map<String,String> substitutions=new HashMap<>();substitutions.put("com.j2a.offline.template",game.appId);substitutions.put("J2A_GAME_TITLE",game.name);substitutions.put("J2A_GAME_VERSION",game.version);
-        byte[] manifest=BinaryXml.replace(apk.get("AndroidManifest.xml"),substitutions);BinaryXml.versionCode(manifest,game.versionCode);apk.put("AndroidManifest.xml",manifest);
+        byte[] manifest=BinaryXml.replace(apk.get("AndroidManifest.xml"),substitutions);int nextVersion=Math.max(game.versionCode,context.getSharedPreferences("game-versions",0).getInt(game.appId,0)+1);
+        BinaryXml.versionCode(manifest,nextVersion);apk.put("AndroidManifest.xml",manifest);
         if(game.icon!=null) {
             apk.put("resources.arsc",BinaryXml.replace(apk.get("resources.arsc"),Collections.singletonMap("res/drawable/ic_launcher.xml","res/drawable/game_icon.png")));
             apk.remove("res/drawable/ic_launcher.xml");apk.put("res/drawable/game_icon.png",game.icon);
@@ -86,7 +87,9 @@ public final class OfflineBuilder {
         log.accept("5/5 · Verificando la firma de la APK…");
         ApkVerifier.Result checked=new ApkVerifier.Builder(result).setMinCheckedPlatformVersion(26).build().verify();
         if(!checked.isVerified()){result.delete();throw new IOException("La firma de la APK no superó la verificación: "+checked.getErrors());}
-        log.accept("APK lista · "+game.name+" · "+game.appId);
+        if(!context.getSharedPreferences("game-versions",0).edit().putInt(game.appId,nextVersion).commit())
+            log.accept("Aviso: no se pudo guardar el contador de versión. Respalda tu APK.");
+        log.accept("APK lista · "+game.name+" · "+game.appId+" · versión "+nextVersion);
         return result;
     }
     public static String safeName(String name){String n=name.replaceAll("[<>:\"/\\\\|?*\\p{Cntrl}]","").trim();return n.isEmpty()?"juego":n.substring(0,Math.min(n.length(),100));}
