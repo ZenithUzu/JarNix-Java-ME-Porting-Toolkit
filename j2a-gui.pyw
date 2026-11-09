@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""j2a con interfaz gráfica. En Windows basta con doble clic en este archivo (o en j2a-gui.bat).
+"""JarNix: interfaz gráfica de escritorio para j2a. En Windows basta con doble clic en este archivo (o en j2a-gui.bat).
 
 Es una ventana encima de los mismos comandos de tool/j2a.py: lo que genera es idéntico.
 """
@@ -147,7 +147,7 @@ class Game:
 class App(BaseTk):
     def __init__(self, initial=()):
         super().__init__()
-        self.title("j2a Studio — de Java ME a APK")
+        self.title("JarNix — Java ME Porting Toolkit")
         self.minsize(900, 600)
         self.geometry("1020x720")
         self.configure(bg=PAPER)
