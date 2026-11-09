@@ -51,7 +51,8 @@ public final class OfflineBuilder {
         Map<String,byte[]> apk=Archives.load(base);
         apk.keySet().removeIf(p->p.toUpperCase(Locale.ROOT).startsWith("META-INF/") || p.startsWith("assets/j2a/"));
         Map<String,String> substitutions=new HashMap<>();substitutions.put("com.j2a.offline.template",game.appId);substitutions.put("J2A_GAME_TITLE",game.name);substitutions.put("J2A_GAME_VERSION",game.version);
-        byte[] manifest=BinaryXml.replace(apk.get("AndroidManifest.xml"),substitutions);int nextVersion=Math.max(game.versionCode,context.getSharedPreferences("game-versions",0).getInt(game.appId,0)+1);
+        byte[] manifest=BinaryXml.replace(apk.get("AndroidManifest.xml"),substitutions);int clockVersion=(int)(System.currentTimeMillis()/1000L-1577836800L);
+        int nextVersion=Math.max(Math.max(game.versionCode,clockVersion),context.getSharedPreferences("game-versions",0).getInt(game.appId,0)+1);
         BinaryXml.versionCode(manifest,nextVersion);apk.put("AndroidManifest.xml",manifest);
         if(game.icon!=null) {
             apk.put("resources.arsc",BinaryXml.replace(apk.get("resources.arsc"),Collections.singletonMap("res/drawable/ic_launcher.xml","res/drawable/game_icon.png")));
