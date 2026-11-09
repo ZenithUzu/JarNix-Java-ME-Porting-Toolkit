@@ -17,7 +17,8 @@ android {
         // API 37 (Android 17): orientation locks are ignored on tablets/foldables; the port
         // already rescales to any window, so the game just gets letterboxed or bigger.
         targetSdk = 37
-        versionCode = @@VERSION_CODE@@
+        // Time-based code aligns independent PC/Android builds (epoch 2020, seconds).
+        versionCode = Math.max(@@VERSION_CODE@@, (int)((System.currentTimeMillis() / 1000L) - 1577836800L))
         versionName = '@@VERSION_NAME@@'
     }
 
