@@ -1,6 +1,6 @@
-# symbian-a-Android-port
+# JarNix · Java ME Porting Toolkit
 
-**j2a** convierte juegos Java ME (Symbian S60, Series 40 y cualquier `.jar`/`.jad` de MIDP) en
+**JarNix** (herramienta de PC) convierte juegos Java ME (Symbian S60, Series 40 y cualquier `.jar`/`.jad` de MIDP) en
 **proyectos nativos de Android Studio**: código Java editable, recursos originales y una
 implementación de J2ME sobre Android con mejoras (escalado, teclado virtual, mandos, límite de FPS...).
 
@@ -11,9 +11,17 @@ MiJuego.jar ──► j2a analyze ──► j2a port ──► proyecto Android 
                  (qué APIs usa)   (parche + descompilación + verificación)
 ```
 
+## Nombres y compatibilidad
+
+- **JarNix**: aplicación de escritorio para preparar proyectos Android Studio, compilar APK e instalar mediante ADB.
+- **J2Droid**: conversor autónomo de JAR/JAD a APK directamente en Android.
+- **J2Legacy**: nombre del motor compartido de compatibilidad Java ME; internamente se conservan los identificadores técnicos `j2a`.
+
+Los nombres nuevos son visibles; **no se renombran** comandos (`tool/j2a.py`), paquetes Java, rutas de caché, IDs de aplicaciones, firmas ni archivos de proyecto existentes. Esto evita romper scripts y actualizaciones. Los nombres de artefactos de CI se mantienen temporalmente para no invalidar enlaces y automatizaciones.
+
 ## Requisitos
 
-**Versión Android sin PC:** consulta [android-offline/README.md](android-offline/README.md).
+**J2Droid (versión Android sin PC):** consulta [android-offline/README.md](android-offline/README.md).
 Su única salida es una APK firmada; incluye compilador y motor para convertir localmente.
 Las instrucciones siguientes corresponden a la herramienta de escritorio.
 
@@ -31,7 +39,7 @@ python tool/j2a.py doctor      # comprueba Java, SDK y descompiladores
 
 ## Firma compartida entre Android y PC (experimental)
 
-La app Android permite **Respaldar firma** como archivo PKCS#12 (`.p12`) protegido por contraseña. Para que j2a PC use **exactamente la misma clave privada**, copia ese respaldo a `%USERPROFILE%\\.j2a\\signing\\identity.p12` (Windows) o define la ruta con `J2A_SIGNING_FILE`. Define también `J2A_SIGNING_PASSWORD` en el entorno antes de ejecutar la GUI o CLI. Ejemplo en PowerShell (solo para esta sesión):
+**J2Droid** permite **Respaldar firma** como archivo PKCS#12 (`.p12`) protegido por contraseña. Para que j2a PC use **exactamente la misma clave privada**, copia ese respaldo a `%USERPROFILE%\\.j2a\\signing\\identity.p12` (Windows) o define la ruta con `J2A_SIGNING_FILE`. Define también `J2A_SIGNING_PASSWORD` en el entorno antes de ejecutar la GUI o CLI. Ejemplo en PowerShell (solo para esta sesión):
 
 ```powershell
 $env:J2A_SIGNING_FILE = "$HOME\\.j2a\\signing\\identity.p12"
@@ -51,7 +59,7 @@ Tanto los APK generados desde **PC** como los generados desde **Android** utiliz
 
 ## Uso con interfaz (lo más fácil)
 
-### APK lista con j2a Studio
+### APK lista con JarNix
 
 La interfaz ofrece tres destinos en **Entrega**: proyecto de Android Studio, APK instalable,
 o APK con instalación por ADB. Para ADB, instala Platform-Tools, activa la depuración USB
@@ -102,7 +110,7 @@ Puedes corregir el SDK o el código y repetir `build` sin volver a generar ni pe
 En la interfaz, al encontrar un proyecto existente, **No** conserva sus ajustes y compila su APK;
 **Sí** lo reemplaza. Elige **Proyecto de Android Studio** si solo quieres generar el proyecto.
 
-Doble clic en **`j2a-gui.pyw`** (en Linux/macOS: `python3 j2a-gui.pyw`). En Windows, si no abre o sale un error de "Python Launcher", usa **`j2a-gui.bat`**: muestra el error en vez de cerrarse.
+Para abrir **JarNix**, haz doble clic en **`j2a-gui.pyw`** (en Linux/macOS: `python3 j2a-gui.pyw`). En Windows, si no abre o sale un error de "Python Launcher", usa **`j2a-gui.bat`**: muestra el error en vez de cerrarse.
 
 1. **Arrastra** uno o varios `.jar` a la lista (o **Añadir juegos…**, o suéltalos sobre `j2a-gui.bat`).
    Cada juego muestra su nombre, su paquete y dónde se creará su proyecto, todo automático.
