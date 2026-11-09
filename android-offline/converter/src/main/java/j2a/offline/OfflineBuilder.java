@@ -56,8 +56,15 @@ public final class OfflineBuilder {
         BinaryXml.versionCode(manifest,nextVersion);apk.put("AndroidManifest.xml",manifest);
         if(game.icon!=null) {
             // Launcher icon = the JAR's own PNG (same as JarNix): replace the template's game_icon.png file.
+            // The template is built with shortened resource paths (e.g. res/E1.png), so find the
+            // placeholder by its bytes; the readable name is kept as a fallback.
+            byte[] placeholder;
+            try(InputStream in=context.getAssets().open("engine-icon.png")){ByteArrayOutputStream b=new ByteArrayOutputStream();copy(in,b);placeholder=b.toByteArray();}
             String slot=null;
-            for(String path:apk.keySet())if(path.startsWith("res/") && path.endsWith("/game_icon.png")){slot=path;break;}
+            for(Map.Entry<String,byte[]> e:apk.entrySet()) {
+                String path=e.getKey();
+                if(path.startsWith("res/") && (path.endsWith("/game_icon.png") || Arrays.equals(e.getValue(),placeholder))){slot=path;break;}
+            }
             if(slot==null)throw new IOException("La plantilla del motor no contiene game_icon.png");
             apk.put(slot,game.icon);
         }

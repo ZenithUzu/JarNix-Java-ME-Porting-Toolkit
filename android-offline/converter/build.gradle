@@ -19,6 +19,8 @@ tasks.register('stageEngine', Copy) {
     from(project(':template').layout.buildDirectory.dir('outputs/apk/debug')) { include '*-debug.apk'; rename { 'engine-template.apk' } }
     from('../../runtime-extra/NOTICE-EXTRA.md')
     from('../../runtime-m3g/NOTICE-M3G.md')
+    // Placeholder icon of the template: located by content, since resource names are shortened.
+    from('../../runtime/src/main/res-icon/drawable-nodpi/game_icon.png') { rename { 'engine-icon.png' } }
     into layout.buildDirectory.dir('generated/engineAssets')
 }
 tasks.named('preBuild').configure { dependsOn 'stageEngine' }
