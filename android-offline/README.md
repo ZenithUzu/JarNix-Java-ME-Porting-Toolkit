@@ -1,13 +1,15 @@
-# j2a Offline para Android
+# J2Droid · Java ME to Android
 
 Convierte un JAR Java ME a una **APK firmada directamente en Android**, sin Python, Gradle,
 servidor, Termux ni PC durante la conversión. La aplicación incluye D8, apksig y una plantilla
 compilada del motor, con los menús/filtros actuales y bibliotecas M3G/MascotCapsule para ARM y x86_64.
 La herramienta no declara permiso de Internet. Los APK de juegos sí pueden usar la red, como el motor de escritorio.
 
+J2Droid es la aplicación Android del proyecto **JarNix** (PC). Ambas utilizan el motor compartido **J2Legacy**, cuyo código y rutas internas conservan el identificador `j2a` por compatibilidad. La denominación de APK/artefactos de CI aún es `j2a-offline-android` para no romper descargas existentes.
+
 ## Uso
 
-1. Descarga `j2a-offline-android.apk` desde la [última versión publicada](https://github.com/ZenithUzu/symbian-a-Android-port/releases) o desde el artefacto **j2a-offline-android** en GitHub Actions, e instálala. La APK de prueba usa firma de depuración.
+1. Descarga `j2a-offline-android.apk` (nombre técnico actual del artefacto de **J2Droid**) desde la [última versión publicada](https://github.com/ZenithUzu/symbian-a-Android-port/releases) o desde el artefacto **j2a-offline-android** en GitHub Actions, e instálala. La APK de prueba usa firma de depuración.
 2. Selecciona un JAR; añade su JAD si contiene información que falta en el manifiesto.
 3. Pulsa **Crear APK en este teléfono**. La notificación mantiene la compilación en primer plano.
 4. Pulsa **Guardar APK** y elige dónde guardarla con el selector de archivos de Android.
@@ -54,4 +56,4 @@ Las fuentes de herramientas están documentadas en los proyectos oficiales:
 
 Los archivos intermedios de cada conversión se crean en la caché y se eliminan al terminar (también si falla). Solo se mantiene una APK terminada pendiente de exportación, que se elimina tras guardarla correctamente. El JAR/JAD seleccionado se conserva como entrada hasta elegir otro archivo; no se borra automáticamente. La interfaz admite desplazamiento vertical y utiliza colores dinámicos del sistema en Android 12+ cuando están disponibles.
 
-**Firma y actualizaciones:** la firma anterior basada en AndroidKeyStore no es compatible automáticamente con la nueva identidad PKCS#12. Las APK ya instaladas con la firma antigua no se podrán actualizar con una identidad nueva sin una migración específica. Para nuevas APK, respalda la identidad antes de borrar datos o desinstalar j2a. La compatibilidad de actualización requiere además el mismo `applicationId` y un `versionCode` superior. El instalador de la propia herramienta tiene una firma independiente de la de los juegos.
+**Firma y actualizaciones:** la firma anterior basada en AndroidKeyStore no es compatible automáticamente con la nueva identidad PKCS#12. Las APK ya instaladas con la firma antigua no se podrán actualizar con una identidad nueva sin una migración específica. Para nuevas APK, respalda la identidad antes de borrar datos o desinstalar J2Droid. La compatibilidad de actualización requiere además el mismo `applicationId` y un `versionCode` superior. El instalador de la propia herramienta tiene una firma independiente de la de los juegos.
