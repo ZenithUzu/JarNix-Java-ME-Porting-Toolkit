@@ -70,15 +70,33 @@ public final class MainActivity extends Activity {
     }
     private void showProjects(){
         SharedPreferences prefs=getPreferences(0);
-        String name=prefs.getString("name","Sin juego seleccionado");
         String jar=prefs.getString("jar","");
-        String message=jar.isEmpty()?"Selecciona un JAR para ver sus datos.":("Juego: "+name+"\nOrigen: "+jar+"\n\nEl identificador de paquete se determina al compilar a partir de los metadatos del MIDlet. Consulta el historial de compilación para revisar los resultados.");
-        new android.app.AlertDialog.Builder(this).setTitle("Proyectos · J2Droid").setMessage(message).setPositiveButton("Cerrar",null).show();
+        if(jar.isEmpty()){new android.app.AlertDialog.Builder(this).setTitle("Proyectos").setMessage("Selecciona un archivo JAR para consultar los metadatos del juego.").setPositiveButton("Cerrar",null).show();return;}
+        files.execute(()->{
+            String message;
+            try {
+                String jad=prefs.getString("jad","");
+                GameJar game=new GameJar(new File(jar),jad.isEmpty()?null:new File(jad),prefs.getString("name","Juego.jar"));
+                String vendor="No especificado";
+                for(java.util.Map.Entry<String,String> entry:game.attributes.entrySet())if(entry.getKey().equalsIgnoreCase("MIDlet-Vendor"))vendor=entry.getValue();
+                message="Juego: "+game.name+"\nProveedor: "+vendor+"\nVersión: "+game.version+"\nClase MIDlet: "+game.midlet+"\nID del paquete: "+game.appId+"\nResolución: "+game.width+" × "+game.height+" ("+game.confidence+")";
+            }catch(Exception error){message="No se pudieron leer los metadatos: "+error.getMessage();}
+            final String result=message;
+            ui.post(()->new android.app.AlertDialog.Builder(this).setTitle("Proyecto · J2Droid").setMessage(result).setPositiveButton("Cerrar",null).show());
+        });
     }
     private void showHistory(){
         SharedPreferences state=getSharedPreferences(BuildService.STATE,0);
-        String logText=state.getString("log","");
-        new android.app.AlertDialog.Builder(this).setTitle("Historial de la última conversión").setMessage(logText.isEmpty()?"Todavía no hay una conversión registrada.":logText).setPositiveButton("Cerrar",null).show();
+        StringBuilder summary=new StringBuilder();
+        try{
+            org.json.JSONArray history=new org.json.JSONArray(state.getString("history","[]"));
+            for(int i=history.length()-1;i>=0;i--){
+                org.json.JSONObject entry=history.getJSONObject(i);
+                String date=android.text.format.DateFormat.format("dd/MM/yyyy HH:mm",entry.optLong("time")).toString();
+                summary.append(date).append(" · ").append(entry.optString("status")).append("\n").append(entry.optString("name")).append("\n\n");
+            }
+        }catch(Exception ignored){}
+        new android.app.AlertDialog.Builder(this).setTitle("Historial de conversiones").setMessage(summary.length()==0?"Todavía no hay conversiones registradas.":summary.toString()).setPositiveButton("Cerrar",null).show();
     }
     private void startBuild() {
         SharedPreferences prefs=getPreferences(0);String jar=prefs.getString("jar",null),jad=prefs.getString("jad",null);
