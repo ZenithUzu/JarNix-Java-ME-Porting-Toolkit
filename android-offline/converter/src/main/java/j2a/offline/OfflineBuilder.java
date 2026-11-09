@@ -76,18 +76,9 @@ public final class OfflineBuilder {
         for(Path path:outputs)apk.put("classes"+(nextDex++)+".dex",Files.readAllBytes(path));
         File unsigned=new File(work,"unsigned.apk");Archives.write(unsigned,apk);apk.clear();game.entries.clear();
         log.accept("4/5 · Firmando con la clave local de este dispositivo…");
-        KeyStore store=KeyStore.getInstance("AndroidKeyStore");store.load(null);
-        if(!store.containsAlias(KEY_ALIAS)) {
-            KeyPairGenerator generator=KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA,"AndroidKeyStore");
-            generator.initialize(new KeyGenParameterSpec.Builder(KEY_ALIAS,KeyProperties.PURPOSE_SIGN|KeyProperties.PURPOSE_VERIFY)
-                    .setKeySize(2048).setDigests(KeyProperties.DIGEST_SHA256,KeyProperties.DIGEST_SHA512)
-                    .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                    .setCertificateSubject(new X500Principal("CN=J2A Offline Local"))
-                    .setCertificateSerialNumber(BigInteger.ONE).setCertificateNotAfter(new Date(System.currentTimeMillis()+20L*365*86400000)).build());
-            generator.generateKeyPair();
-        }
-        PrivateKey key=(PrivateKey)store.getKey(KEY_ALIAS,null);
-        X509Certificate cert=(X509Certificate)store.getCertificate(KEY_ALIAS);
+        SigningProfile signing=new SigningProfile(context);
+        PrivateKey key=signing.key();
+        X509Certificate cert=signing.certificate();
         ApkSigner.SignerConfig signer=new ApkSigner.SignerConfig.Builder("j2a",key,Collections.singletonList(cert)).build();
         File result=new File(work,safeName(game.name)+".apk");
         new ApkSigner.Builder(Collections.singletonList(signer)).setInputApk(unsigned).setOutputApk(result)
