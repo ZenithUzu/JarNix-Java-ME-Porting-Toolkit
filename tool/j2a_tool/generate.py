@@ -34,23 +34,14 @@ def _segment(text, words=None):
 
 
 def official_package(suite, midlet_class):
-    """applicationId from the game itself: the MIDlet's own package (com.gameloft.sonic) when it
-    has a real one, otherwise com.<publisher>.<game> from MIDlet-Vendor / MIDlet-Name."""
-    if midlet_class and "." in midlet_class:
-        pkg = midlet_class.rsplit(".", 1)[0].lower()
-        segs = pkg.split(".")
-        if len(segs) >= 2 and all(re.match(r"^[a-z][a-z0-9_]{1,}$", x) and x not in JAVA_KEYWORDS for x in segs) \
-                and not pkg.startswith(("javax.", "java.", "com.nokia.", "com.sun.")):
-            # Publishers reuse one package for all their games ('com.glu', EA's 'com.ea.sdk'):
-            # same app id = installing one game replaces the other. Add the game name unless
-            # the package already names it (com.sega.sonic for "Sonic Unleashed").
-            name = _segment(suite.name) or "game"
-            return pkg if segs[-1] in name or name in segs[-1] else pkg + "." + name
-    vendor = _segment(suite.vendor, 1)
-    if len(vendor) <= 2:
-        vendor = _segment(suite.vendor, 2)
-    name = _segment(suite.name) or "game"
-    return "com.%s.%s" % (vendor or "j2me", name)
+    """Stable cross-platform applicationId, matching Android GameJar.
+    
+    Hash MIDlet-Vendor, MIDlet-Name and the selected MIDlet class as UTF-8.
+    """
+    import hashlib
+    identity = (suite.vendor or "") + "\\n" + (suite.name or "") + "\\n" + midlet_class
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
+    return "com.j2a.game.g" + digest
 
 
 def display_file_name(text):
@@ -412,7 +403,7 @@ def port(args):
         "@@PACKAGE_PATH@@": package.replace(".", os.sep),
         "@@VERSION_NAME@@": suite.version,
         "@@APK_NAME@@": display_file_name(app_name) + "-" + re.sub(r"[^0-9A-Za-z.]", "", suite.version or "1.0"),
-        "@@VERSION_CODE@@": str(max(1, int(re.sub(r"\D", "", suite.version.split(".")[0]) or 1))),
+        "@@VERSION_CODE@@": str(max(1, int(re.sub(r"\\D", "", suite.version.split(".")[0]) or 1))),
         "@@ORIENTATION@@": {"portrait": "userPortrait", "landscape": "userLandscape"}.get(orientation, "fullUser"),
         "@@PERMISSIONS@@": ("<uses-permission android:name=\"android.permission.INTERNET\" />"
                             if report["uses_network"] else "<!-- sin permisos de red -->"),
