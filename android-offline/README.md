@@ -24,7 +24,7 @@ conservan nombre, editor y clase MIDlet. Los ajustes se cambian dentro del juego
   Límite de entrada: 64 MiB; recursos descomprimidos: 200 MiB, con 32 MiB por entrada.
 - PNG/GIF, manifiesto/JAD, nombre y llamadas de dibujo/buffers aportan pistas de resolución.
   La confianza se muestra en el registro. Si falta evidencia se usa 240x320 y el menú permite corregirla.
-- La clave se genera en **AndroidKeyStore** y queda ligada a esta instalación. Borrar datos o
+- La clave se genera en **AndroidKeyStore** y queda ligada a esta instalación. **Todavía no hay exportación ni restauración de firmas**: no desinstales ni borres datos de j2a si necesitas actualizar juegos existentes. Borrar datos o
   desinstalar la herramienta elimina la posibilidad de actualizar APKs firmadas con esa clave.
   No es la clave de depuración de tu PC: una APK de escritorio con el mismo paquete/firma distinta
   no se puede actualizar directamente. La aplicación no desinstala juegos ni borra sus datos.
@@ -49,3 +49,9 @@ D8/R8: BSD 3-Clause. apksig: Apache 2.0. Los módulos extra y 3D conservan sus a
 en `runtime-extra/NOTICE-EXTRA.md`, `runtime-m3g/NOTICE-M3G.md` y los shaders del motor.
 Las fuentes de herramientas están documentadas en los proyectos oficiales:
 [R8](https://r8.googlesource.com/r8/), [apksig](https://android.googlesource.com/platform/tools/apksig/).
+
+## Almacenamiento temporal y apariencia
+
+Los archivos intermedios de cada conversión se crean en la caché y se eliminan al terminar (también si falla). Solo se mantiene una APK terminada pendiente de exportación, que se elimina tras guardarla correctamente. El JAR/JAD seleccionado se conserva como entrada hasta elegir otro archivo; no se borra automáticamente. La interfaz admite desplazamiento vertical y utiliza colores dinámicos del sistema en Android 12+ cuando están disponibles.
+
+**Pendiente:** un almacén exportable y restaurable de claves privadas con cifrado y contraseña. La clave actual de AndroidKeyStore no puede copiarse a una carpeta como respaldo recuperable. No se garantiza continuidad de firma tras desinstalar la herramienta.
