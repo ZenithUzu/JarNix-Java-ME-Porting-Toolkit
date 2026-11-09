@@ -14,6 +14,7 @@ import java.util.TreeMap;
 import java.util.Vector;
 
 import j2a.core.Host;
+import j2a.core.SaveSaf;
 
 /**
  * Record stores persisted as one small file each in the app's private
@@ -96,7 +97,7 @@ public class RecordStore {
             open.remove(recordStoreName);
             File f = fileFor(recordStoreName);
             if (!f.exists()) throw new RecordStoreNotFoundException(recordStoreName);
-            f.delete();
+            if(!f.delete())throw new RecordStoreException("Could not delete "+recordStoreName);
         }
     }
 
@@ -315,10 +316,15 @@ public class RecordStore {
             } finally {
                 out.close();
             }
-            if (!tmp.renameTo(file)) {
-                file.delete();
-                if (!tmp.renameTo(file)) throw new IOException("rename failed");
+            try {
+                java.nio.file.Files.move(tmp.toPath(),file.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch(java.nio.file.AtomicMoveNotSupportedException e) {
+                java.nio.file.Files.move(tmp.toPath(),file.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             }
+            SaveSaf.saved(file);
         } catch (IOException e) {
             throw new RecordStoreFullException(e.toString());
         }
