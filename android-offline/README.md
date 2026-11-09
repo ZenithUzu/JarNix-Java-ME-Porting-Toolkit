@@ -7,6 +7,10 @@ La herramienta no declara permiso de Internet. Los APK de juegos sí pueden usar
 
 J2Droid es la aplicación Android del proyecto **JarNix** (PC). Ambas utilizan el motor compartido **J2Legacy**, cuyo código y rutas internas conservan el identificador `j2a` por compatibilidad. La denominación de APK/artefactos de CI aún es `j2a-offline-android` para no romper descargas existentes.
 
+## Interfaz actual
+
+La aplicación se presenta como **J2Droid** en Android. La pantalla de conversión muestra accesos a **Proyectos** (JAR seleccionado) e **Historial** (registro de la última conversión). Estas vistas son iniciales: todavía no hay biblioteca persistente ni historial de todas las compilaciones. Los controles de firma se llaman **Exportar firma** e **Importar firma**. La interfaz definitiva del mockup, con tarjetas y navegación completa, sigue pendiente de implementar y validar.
+
 ## Uso
 
 1. Descarga `j2a-offline-android.apk` (nombre técnico actual del artefacto de **J2Droid**) desde la [última versión publicada](https://github.com/ZenithUzu/symbian-a-Android-port/releases) o desde el artefacto **j2a-offline-android** en GitHub Actions, e instálala. La APK de prueba usa firma de depuración.
