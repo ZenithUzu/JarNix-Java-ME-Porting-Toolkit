@@ -526,6 +526,20 @@ public final class Host {
             java.util.function.BiConsumer<String, Runnable> item = (l, r) -> { labels.add(l); actions.add(r); };
 
             item.accept("# PARTIDA", () -> {});
+            item.accept("Seleccionar carpeta Java (SAF)", () -> SaveSaf.choose(activity));
+            item.accept("Respaldar partidas RMS en Java/saves", () -> {
+                new Thread(() -> {try {SaveSaf.backup(activity);runOnUi(() ->
+                    Toast.makeText(activity,"Partidas respaldadas",Toast.LENGTH_LONG).show());}
+                    catch(Exception e){runOnUi(() -> SaveSaf.error(activity,e));}}, "j2a-save-backup").start();
+            });
+            item.accept("Restaurar partidas RMS (solo faltantes)", () -> {
+                new android.app.AlertDialog.Builder(activity).setTitle("Restaurar partidas")
+                    .setMessage("Hazlo antes de iniciar una partida nueva. Solo se importarán archivos RMS que no existan localmente. Reinicia el juego después.")
+                    .setNegativeButton("Cancelar",null).setPositiveButton("Restaurar",(dialog,which) ->
+                        new Thread(() -> {try {SaveSaf.restore(activity);runOnUi(() ->
+                            Toast.makeText(activity,"Restauración terminada. Reinicia el juego.",Toast.LENGTH_LONG).show());}
+                            catch(Exception e){runOnUi(() -> SaveSaf.error(activity,e));}}, "j2a-save-restore").start()).show();
+            });
             item.accept("▶ Continuar", () -> {});
             item.accept("Tecla izquierda del juego (menú / aceptar)", () -> tapKey(Keys.SOFT_LEFT));
             item.accept("Tecla derecha del juego (atrás / pausa)", () -> tapKey(Keys.SOFT_RIGHT));
