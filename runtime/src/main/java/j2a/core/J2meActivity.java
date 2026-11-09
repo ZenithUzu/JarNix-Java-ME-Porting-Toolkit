@@ -113,6 +113,12 @@ public class J2meActivity extends Activity {
         } catch (Throwable ignored) {}
     }
 
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,android.content.Intent data) {
+        super.onActivityResult(requestCode,resultCode,data);
+        SaveSaf.handle(this,requestCode,resultCode,data);
+    }
+
     /** Hook for ports: change Config values before the MIDlet starts. */
     protected void onConfigLoaded(Config cfg) {}
 
