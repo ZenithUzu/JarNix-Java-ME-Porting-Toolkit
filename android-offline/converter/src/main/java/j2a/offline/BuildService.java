@@ -27,9 +27,13 @@ public final class BuildService extends Service {
         String jar=intent.getStringExtra("jar"),jad=intent.getStringExtra("jad"),name=intent.getStringExtra("name");
         worker.execute(()->{
             try {
-                File work=new File(getFilesDir(),"builds/"+System.currentTimeMillis());
-                File result=new OfflineBuilder(this,this::log).build(new File(jar),jad==null?null:new File(jad),name,work);
-                getSharedPreferences(STATE,0).edit().putString("result",result.getAbsolutePath()).apply();
+                File work=new File(getCacheDir(),"j2a-build-"+System.currentTimeMillis());
+                try {
+                    File result=new OfflineBuilder(this,this::log).build(new File(jar),jad==null?null:new File(jad),name,work);
+                    File output=new File(getFilesDir(),"ready.apk");
+                    java.nio.file.Files.move(result.toPath(),output.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    getSharedPreferences(STATE,0).edit().putString("result",output.getAbsolutePath()).apply();
+                } finally { deleteTree(work); }
             }catch(Throwable error){log("Error: "+error.toString());}
             finally {
                 running=false;getSharedPreferences(STATE,0).edit().putBoolean("busy",false).apply();
@@ -37,6 +41,12 @@ public final class BuildService extends Service {
             }
         });
         return START_NOT_STICKY;
+    }
+    private static void deleteTree(File file) {
+        if(file==null || !file.exists())return;
+        File[] children=file.listFiles();
+        if(children!=null)for(File child:children)deleteTree(child);
+        file.delete();
     }
     private synchronized void log(String text) {
         lines.append(text).append('\n');if(lines.length()>64000)lines.delete(0,lines.length()-64000);
