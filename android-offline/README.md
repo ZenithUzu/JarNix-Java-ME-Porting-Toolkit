@@ -7,7 +7,7 @@ La herramienta no declara permiso de Internet. Los APK de juegos sí pueden usar
 
 ## Uso
 
-1. Instala `converter-debug.apk` del artefacto **j2a-offline-android** en GitHub Actions.
+1. Descarga `j2a-offline-android.apk` desde la [última versión publicada](https://github.com/ZenithUzu/symbian-a-Android-port/releases) o desde el artefacto **j2a-offline-android** en GitHub Actions, e instálala. La APK de prueba usa firma de depuración.
 2. Selecciona un JAR; añade su JAD si contiene información que falta en el manifiesto.
 3. Pulsa **Crear APK en este teléfono**. La notificación mantiene la compilación en primer plano.
 4. Pulsa **Guardar APK** y elige dónde guardarla con el selector de archivos de Android.
@@ -41,7 +41,7 @@ internet; **las conversiones posteriores en el teléfono no**.
 
 El workflow `.github/workflows/android-offline.yml` compila la herramienta, ejecuta una conversión
 real en un emulador con Wi-Fi/datos apagados, verifica la firma, instala la APK resultante y abre
-el juego de ejemplo. **j2a-offline-android** incluye solo el instalador de la herramienta;
+el juego de ejemplo. Al crear una etiqueta de versión `v*`, el workflow publica el instalador `j2a-offline-android.apk` en GitHub Releases **solo después de superar la validación**. Para commits normales en `main` queda disponible como artefacto en Actions. **j2a-offline-android** incluye solo el instalador de la herramienta;
 **j2a-offline-validation** contiene el juego de prueba convertido y los registros.
 Comprueba el resultado del workflow antes de considerar validada una compilación.
 
