@@ -36,9 +36,12 @@ public final class MainActivity extends Activity {
         SharedPreferences saved=getSharedPreferences(BuildService.STATE,0);
         if(saved.getBoolean("busy",false) && !BuildService.isRunning())saved.edit().putBoolean("busy",false).putString("log",saved.getString("log","")+"\nLa conversión anterior se interrumpió. Puedes intentarlo de nuevo.\n").apply();
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(20),dp(24),dp(20),dp(12));root.setBackgroundColor(surface());
-        root.addView(text("J2Droid · SIN CONEXIÓN",12,accent(),true));
-        root.addView(text("De Java a Android",28,ink(),true));
+        root.addView(text("J2Droid  /  JAVA ME PORTING",12,accent(),true));
+        root.addView(text("Tu biblioteca Java, en Android",26,ink(),true));
         TextView detail=text("JAR → DEX → APK firmada\nTodo en este teléfono. Sin PC ni conexión.",14,ink(),false);detail.setPadding(0,dp(10),0,dp(16));root.addView(detail);
+        LinearLayout tabs=new LinearLayout(this);tabs.setOrientation(LinearLayout.HORIZONTAL);root.addView(tabs);
+        Button projects=new Button(this);projects.setText("Proyectos");projects.setAllCaps(false);projects.setOnClickListener(v->showProjects());tabs.addView(projects,new LinearLayout.LayoutParams(0,dp(48),1));
+        Button history=new Button(this);history.setText("Historial");history.setAllCaps(false);history.setOnClickListener(v->showHistory());tabs.addView(history,new LinearLayout.LayoutParams(0,dp(48),1));
         selected=text("Selecciona un juego .jar",15,accent(),true);root.addView(selected);
         pickJar=button(root,"01  ·  ELEGIR JUEGO JAR",v->pick(1));
         LinearLayout jadRow=new LinearLayout(this);jadRow.setOrientation(LinearLayout.HORIZONTAL);root.addView(jadRow);
@@ -46,10 +49,10 @@ public final class MainActivity extends Activity {
         clearJad=new Button(this);clearJad.setText("Quitar JAD");clearJad.setOnClickListener(v->{getPreferences(0).edit().remove("jad").apply();refresh();});jadRow.addView(clearJad);
         convert=button(root,"02  ·  CREAR APK EN ESTE TELÉFONO",v->startBuild());
         save=button(root,"03  ·  GUARDAR APK",v->saveApk());
-        button(root,"Respaldar firma (.p12)",v->askBackup(false));
-        button(root,"Restaurar firma (.p12)",v->askBackup(true));
+        button(root,"Exportar firma (.p12)",v->askBackup(false));
+        button(root,"Importar firma (.p12)",v->askBackup(true));
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setIndeterminate(true);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(6)));
-        status=text("Motor y compilador incluidos · Android 8 o superior",12,ink(),false);root.addView(status);
+        status=text("J2Legacy · Motor y compilador incluidos · Android 8 o superior",12,ink(),false);root.addView(status);
         ScrollView scroll=new ScrollView(this);log=text("",12,ink(),false);log.setTypeface(Typeface.MONOSPACE);log.setTextIsSelectable(true);log.setPadding(0,dp(12),0,dp(12));scroll.addView(log);root.addView(scroll,new LinearLayout.LayoutParams(-1,dp(160)));
         TextView note=text("La clave de firma pertenece a esta instalación. No borres los datos de la herramienta si quieres actualizar tus juegos con la misma firma.",11,ink(),false);root.addView(note);
         ScrollView page=new ScrollView(this);page.setFillViewport(true);page.addView(root);setContentView(page);
@@ -65,6 +68,18 @@ public final class MainActivity extends Activity {
         status.setText(busy?"Trabajando en el teléfono… Puedes volver a esta pantalla al terminar.":!result.isEmpty()?"APK lista. Pulsa Guardar APK para elegir el destino.":"Sin proyectos ni ADB · Solo APK");
         String lines=state.getString("log","");if(!lines.equals(previousLog)){log.setText(lines);previousLog=lines;}
     }
+    private void showProjects(){
+        SharedPreferences prefs=getPreferences(0);
+        String name=prefs.getString("name","Sin juego seleccionado");
+        String jar=prefs.getString("jar","");
+        String message=jar.isEmpty()?"Selecciona un JAR para ver sus datos.":("Juego: "+name+"\nOrigen: "+jar+"\n\nEl identificador de paquete se determina al compilar a partir de los metadatos del MIDlet. Consulta el historial de compilación para revisar los resultados.");
+        new android.app.AlertDialog.Builder(this).setTitle("Proyectos · J2Droid").setMessage(message).setPositiveButton("Cerrar",null).show();
+    }
+    private void showHistory(){
+        SharedPreferences state=getSharedPreferences(BuildService.STATE,0);
+        String logText=state.getString("log","");
+        new android.app.AlertDialog.Builder(this).setTitle("Historial de la última conversión").setMessage(logText.isEmpty()?"Todavía no hay una conversión registrada.":logText).setPositiveButton("Cerrar",null).show();
+    }
     private void startBuild() {
         SharedPreferences prefs=getPreferences(0);String jar=prefs.getString("jar",null),jad=prefs.getString("jad",null);
         if(jar==null)return;
@@ -78,7 +93,7 @@ public final class MainActivity extends Activity {
         if(BuildService.isRunning()){Toast.makeText(this,"Espera a que termine la conversión",Toast.LENGTH_LONG).show();return;}
         EditText field=new EditText(this);field.setSingleLine(true);field.setHint("Contraseña de respaldo (mínimo 12 caracteres)");
         field.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        new android.app.AlertDialog.Builder(this).setTitle(restore?"Restaurar firma":"Respaldar firma")
+        new android.app.AlertDialog.Builder(this).setTitle(restore?"Importar firma":"Exportar firma")
             .setMessage(restore?"Solo se permite restaurar antes de crear la primera firma. Necesitas la contraseña original.":"Guarda el archivo y la contraseña en un lugar seguro. Sin ambos, no podrás recuperar la firma.")
             .setView(field).setNegativeButton("Cancelar",null).setPositiveButton("Continuar",(d,w)->{
                 String password=field.getText().toString();
