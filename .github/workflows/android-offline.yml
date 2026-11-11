@@ -63,7 +63,7 @@ jobs:
             grep J2A_OFFLINE_SUCCESS smoke-result.txt
             adb pull /sdcard/Android/data/com.zenithuzu.j2a.offline/files/demo-output.apk demo-output.apk
             adb install demo-output.apk
-            adb shell monkey -p $(adb shell pm list packages | sed -n 's/package:\(com.j2a.game.g.*\)/\1/p' | tr -d '\r') 1
+            adb shell monkey -p com.zenithuzu.demoj2a 1
             sleep 5
             python tests/menu_ui_smoke.py
             adb logcat -d -s AndroidRuntime:E > android-crashes.txt

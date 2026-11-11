@@ -16,7 +16,7 @@ public final class OfflineSmoke extends Instrumentation {
             try(InputStream in=getContext().getAssets().open("demo.jar");OutputStream out=new FileOutputStream(jar)){OfflineBuilder.copy(in,out);}
             File apk=new OfflineBuilder(target,text->android.util.Log.i("J2A_SMOKE",text)).build(jar,null,"demo.jar",new File(target.getFilesDir(),"smoke-build"));
             PackageInfo info=target.getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(),0);
-            if(info==null || !info.packageName.startsWith("com.j2a.game.g"))throw new AssertionError("APK manifest/package not readable");
+            if(info==null || !info.packageName.equals("com.zenithuzu.demoj2a"))throw new AssertionError("APK package is not the official com.zenithuzu.demoj2a: "+(info==null?null:info.packageName));
             try(InputStream in=new FileInputStream(apk);OutputStream out=new FileOutputStream(new File(target.getExternalFilesDir(null),"demo-output.apk"))){OfflineBuilder.copy(in,out);}
             result.putString("stream","J2A_OFFLINE_SUCCESS\n"+info.packageName+"\n");finish(-1,result);
         }catch(Throwable error){android.util.Log.e("J2A_SMOKE","Offline conversion failed",error);result.putString("stream","J2A_OFFLINE_FAILURE\n"+error+"\n");finish(0,result);}

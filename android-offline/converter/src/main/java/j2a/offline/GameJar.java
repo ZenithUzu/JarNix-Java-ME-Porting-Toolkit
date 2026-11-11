@@ -11,7 +11,7 @@ import java.util.regex.*;
 public final class GameJar {
     public final Map<String,byte[]> entries;
     public final Map<String,String> attributes;
-    public final String name, midlet, appId, version;
+    public final String name, vendor, midlet, appId, version;
     public final int width,height,versionCode;
     public final String confidence;
     public final byte[] icon;
@@ -35,11 +35,14 @@ public final class GameJar {
             for(Map.Entry<String,String> e:extra.entrySet()){attributes.keySet().removeIf(k->k.equalsIgnoreCase(e.getKey()));attributes.put(e.getKey(),e.getValue());}}
         String[] first=attr("MIDlet-1","").split(",",-1);
         if(first.length<3 || first[2].trim().isEmpty())throw new IOException("Falta MIDlet-1. Añade el JAD si contiene los datos del juego.");
-        midlet=first[2].trim();name=attr("MIDlet-Name",first[0].trim().isEmpty()?filename:first[0].trim());version=attr("MIDlet-Version","1.0");
+        midlet=first[2].trim();name=attr("MIDlet-Name",first[0].trim().isEmpty()?filename:first[0].trim());version=attr("MIDlet-Version","1.0");vendor=attr("MIDlet-Vendor","");
         if(!entries.containsKey(midlet.replace('.','/')+".class"))throw new IOException("La clase MIDlet declarada no existe: "+midlet);
         String identity=attr("MIDlet-Vendor","")+"\n"+name+"\n"+midlet;
         byte[] digest=MessageDigest.getInstance("SHA-256").digest(identity.getBytes(StandardCharsets.UTF_8));StringBuilder id=new StringBuilder("com.j2a.game.g");
-        for(int i=0;i<10;i++)id.append(String.format(Locale.ROOT,"%02x",digest[i]&255));appId=id.toString();
+        for(int i=0;i<10;i++)id.append(String.format(Locale.ROOT,"%02x",digest[i]&255));
+        String declared=attr("MIDlet-Name","").trim();
+        String official=officialPackage(vendor,declared.isEmpty()?first[0].trim():declared,entries.keySet());
+        appId=official!=null?official:id.toString();
         int v=0;Matcher digits=Pattern.compile("\\d+").matcher(version);int parts=0;
         while(parts++<3){int number=digits.find()?Math.min(99,Integer.parseInt(digits.group().substring(0,Math.min(2,digits.group().length())))):0;v=v*100+number;}versionCode=Math.max(1,v);
         String iconPath=attr("MIDlet-Icon",first[1].trim()).replaceFirst("^/","");byte[] image=entries.get(iconPath);
@@ -72,6 +75,45 @@ public final class GameJar {
         }
         String[] wh=best.split("x");width=Integer.parseInt(wh[0]);height=Integer.parseInt(wh[1]);
         confidence=top>=900 || top>=110 && top-second>=30?"alta":top>=60 && top-second>=15?"media":"baja";
+    }
+    /** SDK placeholders that are not a real developer name. Keep in sync with generate.GENERIC_VENDORS. */
+    private static final Set<String> GENERIC_VENDORS=new HashSet<>(Arrays.asList("","unknown","vendor","midlet suite vendor",
+            "midlet-vendor","none","n/a","na","null","-","author","company","my company","mycompany","sun microsystems, inc."));
+    static String clean(String text){return (text==null?"":text).replaceAll("[<>:\"/\\\\|?*\\p{Cntrl}]"," ").replaceAll("\\s+"," ").trim().replaceAll("^\\.+|\\.+$","").trim();}
+    /** Official developer from MIDlet-Vendor, or "" for SDK placeholders. */
+    public static String officialVendor(String vendor){String v=clean(vendor);return GENERIC_VENDORS.contains(v.toLowerCase(Locale.ROOT))?"":v;}
+    /** "Asphalt 4 (Gameloft) v1.0.2" — same rule as generate.apk_file_name on PC. */
+    public static String apkFileName(String name,String vendor,String version){
+        String game=clean(name);if(game.isEmpty())game="juego";String dev=officialVendor(vendor);
+        if(!dev.isEmpty() && game.toLowerCase(Locale.ROOT).contains(dev.toLowerCase(Locale.ROOT)))dev="";
+        String ver=(version==null?"":version).replaceAll("[^0-9A-Za-z.]","").replaceAll("^\\.+|\\.+$","");
+        String tail=(dev.isEmpty()?"":" ("+dev+")")+(ver.isEmpty()?"":" v"+ver);if(tail.length()>60)tail=tail.substring(0,60);
+        String head=game.substring(0,Math.max(1,Math.min(game.length(),120-tail.length()))).trim();return (head+tail).trim();
+    }
+    public String apkFileName(){return apkFileName(name,vendor,version);}
+    private static final Set<String> LEGAL_WORDS=new HashSet<>(Arrays.asList("s","a","sa","inc","ltd","llc","gmbh","corp",
+            "corporation","co","company","limited","oy","ab","sl","srl","spa","plc","kk","bv","ag","nv","sas","sarl","pty","lda"));
+    private static final Set<String> JAVA_KEYWORDS=new HashSet<>(Arrays.asList(("abstract assert boolean break byte case catch char class const continue default do double "
+            +"else enum extends final finally float for goto if implements import instanceof int interface long native new "
+            +"package private protected public return short static strictfp super switch synchronized this throw throws "
+            +"transient try void volatile while true false null var record yield").split(" ")));
+    static List<String> words(String text){
+        String ascii=java.text.Normalizer.normalize(text==null?"":text,java.text.Normalizer.Form.NFKD).replaceAll("[^\\x00-\\x7F]","").toLowerCase(Locale.ROOT);
+        List<String> out=new ArrayList<>();Matcher m=Pattern.compile("[a-z0-9]+").matcher(ascii);while(m.find())out.add(m.group());return out;
+    }
+    static String segment(List<String> words){
+        String seg=String.join("",words);if(seg.length()>30)seg=seg.substring(0,30);if(seg.isEmpty())return "";
+        if(Character.isDigit(seg.charAt(0)))seg="g"+seg;return JAVA_KEYWORDS.contains(seg)?seg+"_":seg;
+    }
+    /** com.&lt;developer&gt;.&lt;game&gt; ("Gameloft S.A." + "Asphalt 4" -> com.gameloft.asphalt4), same rule as
+     *  generate.official_package on PC; null when there is no real vendor/name or the game's classes clash. */
+    public static String officialPackage(String vendor,String gameName,Collection<String> entries){
+        List<String> dev=words(officialVendor(vendor));while(!dev.isEmpty() && LEGAL_WORDS.contains(dev.get(dev.size()-1)))dev.remove(dev.size()-1);
+        String d=segment(dev),g=segment(words(gameName));if(d.isEmpty()||g.isEmpty())return null;
+        String pkg="com."+d+"."+g,base=pkg.replace('.','/')+"/";
+        for(String c:entries)if(c.equals(base+"MainActivity.class")||c.equals(base+"BuildConfig.class")||c.equals(base+"R.class")
+                ||c.startsWith(base+"R$")||c.startsWith(base+"engine/"))return null;
+        return pkg;
     }
     static void add(Map<String,Map<String,Integer>> scores,String pair,String group,int value) {
         String[] parts=pair.split("x");try {int w=Integer.parseInt(parts[0]),h=Integer.parseInt(parts[1]);if(w<64||h<64||w>2048||h>2048)return;

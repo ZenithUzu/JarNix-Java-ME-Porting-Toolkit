@@ -20,12 +20,21 @@ def log(msg):
     print(msg, flush=True)
 
 
-def _segment(text, words=None):
-    """One package segment from free text: 'Gameloft S.A.' -> 'gameloft'."""
-    ws = re.findall(r"[a-z0-9]+", (text or "").lower())
-    if words:
-        ws = ws[:words]
-    seg = "".join(ws)
+# Trailing company-form words dropped from the developer's package segment ('Gameloft S.A.' -> 'gameloft').
+LEGAL_WORDS = set("""s a sa inc ltd llc gmbh corp corporation co company limited oy ab sl srl spa plc kk bv ag nv
+sas sarl pty lda""".split())
+
+
+def _words(text):
+    """ASCII words of free text, accents removed: 'Pokémon Café' -> ['pokemon', 'cafe']."""
+    import unicodedata
+    ascii_text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode("ascii")
+    return re.findall(r"[a-z0-9]+", ascii_text.lower())
+
+
+def _segment(words, limit=30):
+    """One Java package segment from words."""
+    seg = "".join(words)[:limit]
     if not seg:
         return ""
     if seg[0].isdigit():
@@ -33,21 +42,86 @@ def _segment(text, words=None):
     return seg + "_" if seg in JAVA_KEYWORDS else seg
 
 
-def official_package(suite, midlet_class):
-    """Stable cross-platform applicationId, matching Android GameJar.
-    
-    Hash MIDlet-Vendor, MIDlet-Name and the selected MIDlet class as UTF-8.
-    """
+def official_name(suite):
+    """MIDlet-Name, else the first MIDlet's name. Never the JAR file name (that is not official)."""
+    if suite.attrs.get("MIDlet-Name", "").strip():
+        return suite.attrs["MIDlet-Name"].strip()
+    midlets = suite.midlets()
+    return midlets[0]["name"] if midlets else ""
+
+
+def hashed_package(suite, midlet_class):
+    """Fallback id: hash of MIDlet-Vendor, MIDlet-Name and the MIDlet class (UTF-8)."""
     import hashlib
     identity = (suite.vendor or "") + "\n" + (suite.name or "") + "\n" + midlet_class
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
     return "com.j2a.game.g" + digest
 
 
+def package_clashes(package, classes):
+    """True if the game's own classes would collide with what the port adds to that package."""
+    base = package.replace(".", "/") + "/"
+    added = (base + "MainActivity.class", base + "BuildConfig.class", base + "R.class")
+    return any(c in added or c.startswith(base + "R$") or c.startswith(base + "engine/") for c in classes)
+
+
+def official_package(suite, midlet_class):
+    """applicationId from the developer and game: 'Gameloft S.A.' + 'Asphalt 4' -> com.gameloft.asphalt4.
+
+    Same rule as GameJar.officialPackage in J2Droid, so a port built on PC updates the one built on the
+    phone. Falls back to com.j2a.game.g<hash> without a real vendor/name or on a class collision.
+    """
+    vendor = _words(official_vendor(suite.vendor))
+    while vendor and vendor[-1] in LEGAL_WORDS:
+        vendor.pop()
+    dev, game = _segment(vendor), _segment(_words(official_name(suite)))
+    if dev and game:
+        package = "com.%s.%s" % (dev, game)
+        if not package_clashes(package, suite.classes):
+            return package
+    return hashed_package(suite, midlet_class)
+
+
 def display_file_name(text):
     """Folder/APK name from the official game name, safe on Windows."""
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", text or "").strip().strip(".")
     return re.sub(r"\s+", "_", name) or "game"
+
+
+# Placeholder vendors left by SDK wizards: they are not a real developer name.
+GENERIC_VENDORS = {"", "unknown", "vendor", "midlet suite vendor", "midlet-vendor", "none", "n/a", "na",
+                   "null", "-", "author", "company", "my company", "mycompany", "sun microsystems, inc."}
+
+
+def _clean(text):
+    text = re.sub(r'[<>:"/\\|?*\x00-\x1f]', " ", text or "")
+    return re.sub(r"\s+", " ", text).strip().strip(".").strip()
+
+
+def official_vendor(vendor):
+    """MIDlet-Vendor as declared by the developer, or '' when it is an SDK placeholder."""
+    v = _clean(vendor)
+    return "" if v.lower() in GENERIC_VENDORS else v
+
+
+def apk_file_name(name, vendor, version, limit=120):
+    """'Asphalt 4 (Gameloft) v1.0.2': official game name + developer + version, safe on Windows/Android.
+
+    Mirrors GameJar.apkFileName in J2Droid so PC and phone deliver the same file name.
+    """
+    game = _clean(name) or "juego"
+    dev = official_vendor(vendor)
+    if dev and dev.lower() in game.lower():  # 'Gameloft Asphalt' already names its developer
+        dev = ""
+    ver = re.sub(r"[^0-9A-Za-z.]", "", version or "").strip(".")
+    tail = (" (%s)" % dev if dev else "") + (" v" + ver if ver else "")
+    tail = tail[:limit // 2]
+    return (game[:max(1, limit - len(tail))].rstrip() + tail).strip()
+
+
+def groovy_string(text):
+    """Escape for a single-quoted Groovy string literal."""
+    return text.replace("\\", "\\\\").replace("'", "\\'")
 
 
 def prop_escape(s, key=False):
@@ -386,7 +460,7 @@ def port(args):
         "@@PACKAGE@@": package,
         "@@PACKAGE_PATH@@": package.replace(".", os.sep),
         "@@VERSION_NAME@@": suite.version,
-        "@@APK_NAME@@": display_file_name(app_name) + "-" + re.sub(r"[^0-9A-Za-z.]", "", suite.version or "1.0"),
+        "@@APK_NAME@@": groovy_string(apk_file_name(app_name, suite.vendor, suite.version or "1.0")),
         "@@VERSION_CODE@@": str(max(1, int(re.sub(r"\\D", "", suite.version.split(".")[0]) or 1))),
         "@@ORIENTATION@@": {"portrait": "userPortrait", "landscape": "userLandscape"}.get(orientation, "fullUser"),
         "@@PERMISSIONS@@": ("<uses-permission android:name=\"android.permission.INTERNET\" />"
