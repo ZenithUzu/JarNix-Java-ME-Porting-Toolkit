@@ -1,6 +1,7 @@
 """Build installable debug APKs with the generated project's pinned Gradle wrapper."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -89,7 +90,8 @@ def build_apk(project, output=None, log=print):
     destination.mkdir(parents=True, exist_ok=True)
     result = []
     for source in sources:
-        target = destination / source.name
+        # Gradle appends '-debug'; deliver the official name alone: 'Juego (Desarrolladora) v1.0.apk'
+        target = destination / re.sub(r'-debug(?=\.apk$)', '', source.name)
         if source != target:
             temporary = target.with_suffix('.apk.tmp')
             shutil.copy2(str(source), str(temporary))

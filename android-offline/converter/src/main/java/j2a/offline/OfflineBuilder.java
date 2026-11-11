@@ -92,7 +92,7 @@ public final class OfflineBuilder {
         PrivateKey key=signing.key();
         X509Certificate cert=signing.certificate();
         ApkSigner.SignerConfig signer=new ApkSigner.SignerConfig.Builder("j2a",key,Collections.singletonList(cert)).build();
-        File result=new File(work,safeName(game.name)+".apk");
+        File result=new File(work,game.apkFileName()+".apk");
         new ApkSigner.Builder(Collections.singletonList(signer)).setInputApk(unsigned).setOutputApk(result)
                 .setMinSdkVersion(26).setV1SigningEnabled(false).setV2SigningEnabled(true).setV3SigningEnabled(false).build().sign();
         log.accept("5/5 · Verificando la firma de la APK…");

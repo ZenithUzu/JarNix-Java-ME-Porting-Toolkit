@@ -2,7 +2,8 @@ plugins {
     id 'com.android.application'
 }
 
-// APK file name: <Game_Name>-<version>-debug.apk / -release.apk
+// APK file name: '<Game Name> (<MIDlet-Vendor>) v<version>' (+ -debug/-release from Gradle;
+// j2a removes '-debug' when it copies the APK to the delivery folder)
 base {
     archivesName = '@@APK_NAME@@'
 }
